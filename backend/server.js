@@ -94,7 +94,7 @@ app.use((error, _req, res, _next) => {
   return res.status(500).json({ success: false, message: "Internal server error." });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("PANKhojo Backend Started");
   console.log(`Listening on configured port ${PORT}`);
 });
