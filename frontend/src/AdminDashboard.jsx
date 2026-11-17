@@ -151,7 +151,11 @@ export default function AdminDashboard() {
                 method: "PATCH", body: JSON.stringify({ decision, adminRemark: decision === "verify" ? "Verified against bank credit" : "Could not match payment in bank account", customerMessage })
             });
             setNotice(data.message);
+
             await loadPayments();
+            await load();
+
+            setActiveTab("requests");
         } catch (err) { setError(err.message); }
     };
 
