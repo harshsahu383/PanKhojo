@@ -57,13 +57,18 @@ export const createRequest = async (data) => {
     }
 };
 
+
 export const getRequests = async ({
     page = 1,
     limit = 10,
     status,
     search
 }) => {
-    const offset = (page - 1) * limit;
+    // Ensure LIMIT and OFFSET are safe integers.
+    const safePage = Math.max(1, Math.floor(Number(page) || 1));
+    const safeLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 10)));
+    const offset = (safePage - 1) * safeLimit;
+
     const conditions = [];
     const values = [];
 
@@ -87,32 +92,36 @@ export const getRequests = async ({
 
     const [rows] = await pool.execute(
         `SELECT
-       id, request_number, full_name, email, phone, aadhaar_last4,
-       status, created_at, updated_at,
-       (SELECT l.description FROM request_logs l
-          WHERE l.request_id = service_requests.id AND l.action = 'status_updated'
-          ORDER BY l.created_at DESC, l.id DESC LIMIT 1) AS latest_status_remark
-     FROM service_requests
-     ${whereClause}
-     ORDER BY created_at DESC
-     LIMIT ? OFFSET ?`,
-        [...values, limit, offset]
+            id, request_number, full_name, email, phone, aadhaar_last4,
+            status, created_at, updated_at,
+            (SELECT l.description
+             FROM request_logs l
+             WHERE l.request_id = service_requests.id
+               AND l.action = 'status_updated'
+             ORDER BY l.created_at DESC, l.id DESC
+             LIMIT 1) AS latest_status_remark
+         FROM service_requests
+         ${whereClause}
+         ORDER BY created_at DESC
+         LIMIT ${safeLimit} OFFSET ${offset}`,
+        values
     );
 
     const [countRows] = await pool.execute(
         `SELECT COUNT(*) AS total
-     FROM service_requests
-     ${whereClause}`,
+         FROM service_requests
+         ${whereClause}`,
         values
     );
 
     return {
         requests: rows,
-        total: countRows[0].total,
-        page,
-        limit
+        total: Number(countRows[0].total),
+        page: safePage,
+        limit: safeLimit
     };
 };
+
 
 export const getRequestById = async (id) => {
     const [rows] = await pool.execute(
