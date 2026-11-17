@@ -1,0 +1,13 @@
+import { Router } from "express";
+import rateLimit from "express-rate-limit";
+import { authenticateAdmin } from "../middleware/auth.middleware.js";
+import { createManualPayment, submitManualPayment, checkCustomerPaymentStatus, trackCustomerPayment, getManualPayments, decideManualPayment } from "../controllers/payment.controller.js";
+const router = Router();
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: "draft-8", legacyHeaders: false, message: { success: false, message: "Too many payment attempts. Please try again later." } });
+router.post("/create-manual", limiter, createManualPayment);
+router.post("/submit-manual", limiter, submitManualPayment);
+router.post("/status-manual", limiter, checkCustomerPaymentStatus);
+router.post("/track", limiter, trackCustomerPayment);
+router.get("/admin", authenticateAdmin, getManualPayments);
+router.patch("/admin/:reference", authenticateAdmin, decideManualPayment);
+export default router;

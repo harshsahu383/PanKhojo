@@ -1,0 +1,186 @@
+/* PANKhojo request experience — polished visual layer */
+.pankhojo-request-page {
+    --pk-navy: #17365d;
+    --pk-ink: #172b43;
+    --pk-muted: #718198;
+    --pk-teal: #159b83;
+    --pk-line: #e3eaf1;
+    background:
+        radial-gradient(ellipse at 82% 5%, rgba(21, 155, 131, .055), transparent 27rem),
+        linear-gradient(180deg, #f7f9fc 0%, #f1f5f9 100%);
+    color: var(--pk-ink);
+    font-family: "DM Sans", sans-serif;
+}
+
+.pankhojo-request-page button,
+.pankhojo-request-page input {
+    font: inherit;
+}
+
+.pk-header {
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 1px 0 rgba(23, 54, 93, .025), 0 8px 28px rgba(23, 54, 93, .035);
+}
+
+.pk-header button {
+    transition: transform .2s ease, opacity .2s ease;
+}
+
+.pk-header button:hover {
+    transform: translateY(-1px);
+}
+
+.pk-sidebar {
+    isolation: isolate;
+    background-image: linear-gradient(145deg, #17365d 0%, #163d63 58%, #12566a 130%);
+}
+
+.pk-sidebar::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 22rem;
+    height: 22rem;
+    right: -10rem;
+    bottom: 8%;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2.8rem rgba(255, 255, 255, .025), 0 0 0 5.6rem rgba(255, 255, 255, .018);
+    pointer-events: none;
+}
+
+.pk-form-area {
+    position: relative;
+}
+
+.pk-form-area>div {
+    position: relative;
+}
+
+.pk-form-area h2,
+.pk-form-area h3,
+.pk-form-area h4 {
+    letter-spacing: -.04em;
+}
+
+.pk-steps {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .08);
+    background: linear-gradient(115deg, #17365d 0%, #1b456b 100%);
+    box-shadow: 0 16px 34px rgba(23, 54, 93, .13), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+.pk-steps::after {
+    content: "";
+    position: absolute;
+    width: 13rem;
+    height: 13rem;
+    right: -7rem;
+    top: -9rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .1);
+    box-shadow: 0 0 0 2rem rgba(255, 255, 255, .025);
+    pointer-events: none;
+}
+
+.pk-form-card {
+    border: 1px solid rgba(218, 228, 237, .95) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 22px 60px rgba(24, 48, 76, .075), 0 2px 8px rgba(24, 48, 76, .025) !important;
+    transition: box-shadow .25s ease, transform .25s ease;
+}
+
+.pk-form-card:hover {
+    box-shadow: 0 26px 70px rgba(24, 48, 76, .09), 0 2px 8px rgba(24, 48, 76, .025) !important;
+}
+
+.pk-field>span:first-child {
+    color: #31465e !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: .005em;
+}
+
+.pk-field input {
+    height: 54px !important;
+    border: 1px solid #dce5ed !important;
+    border-radius: 12px !important;
+    background: linear-gradient(180deg, #fff 0%, #fcfdff 100%) !important;
+    color: #334b64 !important;
+    box-shadow: 0 2px 5px rgba(20, 40, 70, .025), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+    opacity: 1 !important;
+    cursor: text !important;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.pk-field input::placeholder {
+    color: #a1adbb !important;
+    opacity: 1;
+}
+
+.pk-field input:focus {
+    border-color: #7bc9b8 !important;
+    outline: 3px solid rgba(21, 155, 131, .09);
+}
+
+.pk-form-card .bg-\[\#F3FAF7\] {
+    background: linear-gradient(115deg, #f0faf6, #f7fbf9) !important;
+    border-color: #d5ebe3 !important;
+}
+
+.pk-form-card input[type="date"] {
+    color-scheme: light;
+}
+
+.pk-form-card input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.pk-form-card button[type="submit"] {
+    cursor: pointer;
+}
+
+.pk-form-card button[type="button"] {
+    cursor: pointer;
+}
+
+.pk-field input:focus-visible,
+.pk-form-card input:focus-visible {
+    outline: 3px solid rgba(21, 155, 131, .12);
+    outline-offset: 1px;
+}
+
+.pk-section-heading {
+    scroll-margin-top: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .pk-form-area {
+        background: rgba(255, 255, 255, .24);
+    }
+}
+
+@media (max-width: 640px) {
+    .pk-form-area {
+        padding-top: 1.5rem !important;
+        padding-bottom: 2.5rem !important;
+    }
+
+    .pk-form-card {
+        border-radius: 17px !important;
+    }
+
+    .pk-field input {
+        height: 51px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .pk-form-card,
+    .pk-header button {
+        transition: none;
+    }
+}
