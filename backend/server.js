@@ -15,6 +15,9 @@ import { expirePendingPayments } from "./models/payment.model.js";
 
 dotenv.config();
 const app = express();
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
 const PORT = Number(process.env.PORT || 4000);
 const BACKEND_DIR = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
