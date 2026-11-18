@@ -16,6 +16,7 @@ const statusStyles = {
     completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     rejected: "bg-rose-50 text-rose-700 ring-rose-200",
     cancelled: "bg-slate-100 text-slate-700 ring-slate-300",
+    expired: "bg-rose-50 text-rose-700 ring-rose-200",
 };
 
 const prettyStatus = (value = "") =>
@@ -35,7 +36,7 @@ const formatDate = (value) => {
 function StatusBadge({ status }) {
     return (
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyles[status] || "bg-slate-100 text-slate-600 ring-slate-200"}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${status === "completed" ? "bg-emerald-500" : status === "processing" ? "bg-sky-500" : status === "rejected" ? "bg-rose-500" : status === "cancelled" ? "bg-slate-500" : "bg-amber-500"}`} />
+            <span className={`h-1.5 w-1.5 rounded-full ${status === "completed" ? "bg-emerald-500" : status === "processing" ? "bg-sky-500" : status === "rejected" ? "bg-rose-500" : status === "cancelled" ? "bg-slate-500" : status === "expired" ? "bg-rose-500" : "bg-amber-500"}`} />
             {prettyStatus(status)}
         </span>
     );
@@ -144,7 +145,7 @@ export default function AdminDashboard() {
         if (!window.confirm(message)) return;
         const customerMessage = decision === "reject"
             ? (window.prompt("Customer-facing update (do not include internal notes):", "We could not match this payment in the merchant bank account. If money was debited, please contact support with your UTR.") || "").trim()
-            : "Your payment has been verified and your PAN-finding request has been created.";
+            : "Your payment has been verified and your PAN-finding request is ready for processing.";
         if (decision === "reject" && customerMessage.length < 5) { setError("Please provide a customer-facing explanation before rejecting the payment."); return; }
         try {
             const data = await call(`/api/payments/admin/${encodeURIComponent(payment.payment_reference)}`, {
@@ -370,10 +371,10 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                 </header>
-                <div className="flex gap-2 border-b border-slate-200 bg-white px-4 py-2.5 lg:hidden">
-                    <button onClick={() => setActiveTab("requests")} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${activeTab === "requests" ? "bg-[#edf2fa] text-[#17365d]" : "text-slate-500 hover:bg-slate-50"}`}><LayoutDashboard size={14}/> Requests</button>
-                    <button onClick={() => { setActiveTab("remarks"); setStatus(""); setSubmittedSearch(""); setSearch(""); }} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${activeTab === "remarks" ? "bg-rose-50 text-rose-700" : "text-slate-500 hover:bg-slate-50"}`}><MessageSquareText size={14}/> Remarks</button>
-                    <button onClick={() => setActiveTab("payments")} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${activeTab === "payments" ? "bg-amber-50 text-amber-700" : "text-slate-500 hover:bg-slate-50"}`}><ShieldCheck size={14}/> Payments</button>
+                <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-3 py-2.5 lg:hidden">
+                    <button onClick={() => setActiveTab("requests")} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${activeTab === "requests" ? "bg-[#edf2fa] text-[#17365d]" : "text-slate-500 hover:bg-slate-50"}`}><LayoutDashboard size={14} /> Requests</button>
+                    <button onClick={() => { setActiveTab("remarks"); setStatus(""); setSubmittedSearch(""); setSearch(""); }} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${activeTab === "remarks" ? "bg-rose-50 text-rose-700" : "text-slate-500 hover:bg-slate-50"}`}><MessageSquareText size={14} /> Remarks</button>
+                    <button onClick={() => setActiveTab("payments")} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${activeTab === "payments" ? "bg-amber-50 text-amber-700" : "text-slate-500 hover:bg-slate-50"}`}><ShieldCheck size={14} /> Payments</button>
                 </div>
 
                 <main className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 lg:px-9 lg:py-9">
@@ -424,7 +425,7 @@ export default function AdminDashboard() {
                                             <td className="px-5 py-4">
                                                 <div className="flex flex-col items-start gap-2">
                                                     <StatusBadge status={request.status} />
-                                                    {activeTab === "requests" && <button onClick={() => openStatusEditor(request)} disabled={updatingId === request.id} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800 disabled:opacity-50"><SlidersHorizontal size={12} /> Update status</button>}
+                                                    {activeTab === "requests" && <button onClick={() => openStatusEditor(request)} disabled={updatingId === request.id || Boolean(request.payment_status && request.payment_status !== "verified")} title={request.payment_status && request.payment_status !== "verified" ? "Payment must be verified before processing this request." : "Update request status"} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-40"><SlidersHorizontal size={12} /> {request.payment_status && request.payment_status !== "verified" ? "Payment pending" : "Update status"}</button>}
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4 text-right"><button onClick={() => openRequest(request.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-[#138b76] transition hover:bg-emerald-50"><Eye size={14} /> View details</button></td>
@@ -442,7 +443,7 @@ export default function AdminDashboard() {
 
                     {activeTab === "payments" && <section className="mt-7 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
                         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-5"><div><h2 className="font-bold text-[#172b45]">Manual UPI submissions</h2><p className="mt-1 text-xs text-slate-500">Never approve from a screenshot or UTR alone. Match the credit in the bank account.</p></div><button onClick={loadPayments} className="rounded-lg border px-3 py-2 text-xs font-semibold">Refresh</button></div>
-                        <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm"><thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400"><tr><th className="px-5 py-4">Payment reference</th><th className="px-5 py-4">Customer</th><th className="px-5 py-4">Amount</th><th className="px-5 py-4">Customer UTR</th><th className="px-5 py-4">Submitted</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-right">Action</th></tr></thead><tbody className="divide-y divide-slate-100">{payments.map(payment => <tr key={payment.id}><td className="px-5 py-4 font-semibold text-[#17365d]">{payment.payment_reference}</td><td className="px-5 py-4"><p className="font-semibold">{payment.customer_name || "—"}</p><p className="text-xs text-slate-400">{payment.customer_email || ""}</p></td><td className="px-5 py-4">₹{(payment.amount / 100).toFixed(2)}</td><td className="px-5 py-4 font-mono text-xs">{payment.customer_utr || "—"}</td><td className="px-5 py-4 text-xs text-slate-500">{formatDate(payment.created_at)}</td><td className="px-5 py-4"><StatusBadge status={payment.status === "submitted" ? "pending" : payment.status === "verified" ? "completed" : payment.status === "rejected" ? "rejected" : "processing"}/><span className="ml-2 text-xs text-slate-500">{prettyStatus(payment.status)}</span></td><td className="px-5 py-4 text-right">{payment.status === "submitted" ? <div className="flex justify-end gap-2"><button onClick={() => decidePayment(payment,"verify")} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Verify bank credit</button><button onClick={() => decidePayment(payment,"reject")} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700">Reject</button></div> : payment.status === "created" ? <button onClick={() => decidePayment(payment,"reject")} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700">Mark not received / close</button> : <span className="text-xs text-slate-400">No action</span>}</td></tr>)}{!payments.length && <tr><td colSpan="7" className="px-5 py-12 text-center text-sm text-slate-400">{paymentBusy ? "Loading payments..." : "No payment submissions yet."}</td></tr>}</tbody></table></div>
+                        <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm"><thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400"><tr><th className="px-5 py-4">Payment reference</th><th className="px-5 py-4">Customer</th><th className="px-5 py-4">Amount</th><th className="px-5 py-4">Customer UTR</th><th className="px-5 py-4">Submitted</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-right">Action</th></tr></thead><tbody className="divide-y divide-slate-100">{payments.map(payment => <tr key={payment.id}><td className="px-5 py-4 font-semibold text-[#17365d]">{payment.payment_reference}</td><td className="px-5 py-4"><p className="font-semibold">{payment.customer_name || "—"}</p><p className="text-xs text-slate-400">{payment.customer_email || ""}</p><p className="text-xs text-slate-400">{payment.customer_phone || ""}</p></td><td className="px-5 py-4">₹{(payment.amount / 100).toFixed(2)}</td><td className="px-5 py-4 font-mono text-xs">{payment.customer_utr || "—"}</td><td className="px-5 py-4 text-xs text-slate-500">{formatDate(payment.created_at)}</td><td className="px-5 py-4"><StatusBadge status={payment.status === "created" ? "pending" : payment.status === "submitted" ? "pending" : payment.status === "verified" ? "completed" : payment.status === "rejected" ? "rejected" : payment.status === "expired" ? "expired" : "processing"} /><span className="ml-2 text-xs text-slate-500">{prettyStatus(payment.status)}</span></td><td className="px-5 py-4 text-right">{payment.status === "submitted" ? <div className="flex justify-end gap-2"><button onClick={() => decidePayment(payment, "verify")} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Verify bank credit</button><button onClick={() => decidePayment(payment, "reject")} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700">Reject</button></div> : payment.status === "created" ? <button onClick={() => decidePayment(payment, "reject")} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700">Mark not received / close</button> : <span className="text-xs text-slate-400">No action</span>}</td></tr>)}{!payments.length && <tr><td colSpan="7" className="px-5 py-12 text-center text-sm text-slate-400">{paymentBusy ? "Loading payments..." : "No payment submissions yet."}</td></tr>}</tbody></table></div>
                     </section>}
                 </main>
             </div>
@@ -453,14 +454,14 @@ export default function AdminDashboard() {
                         <div className="shrink-0 bg-gradient-to-r from-[#12324a] to-[#087e78] px-5 py-5 text-white sm:px-7">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex items-start gap-3">
-                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20"><ClipboardList size={21}/></div>
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20"><ClipboardList size={21} /></div>
                                     <div>
                                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-100">PANKhojo · Request workflow</p>
                                         <h2 className="mt-1 text-xl font-bold sm:text-2xl">Update request</h2>
                                         <p className="mt-1 text-xs text-white/75">{statusEditor.request.request_number} · {statusEditor.request.full_name}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setStatusEditor(null)} disabled={!!updatingId} aria-label="Close status editor" className="rounded-xl border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:opacity-50"><X size={18}/></button>
+                                <button onClick={() => setStatusEditor(null)} disabled={!!updatingId} aria-label="Close status editor" className="rounded-xl border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:opacity-50"><X size={18} /></button>
                             </div>
                         </div>
 
@@ -483,9 +484,9 @@ export default function AdminDashboard() {
                                         };
                                         const Icon = item === "completed" ? BadgeCheck : item === "rejected" || item === "cancelled" ? Ban : item === "processing" ? Activity : Clock3;
                                         return <button type="button" key={item} onClick={() => setStatusEditor((v) => ({ ...v, nextStatus: item }))} className={`flex min-h-[58px] items-center gap-2 rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition ${toneClasses[tone]}`}>
-                                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${active ? "bg-white/80" : "bg-slate-50"}`}><Icon size={16}/></span>
+                                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${active ? "bg-white/80" : "bg-slate-50"}`}><Icon size={16} /></span>
                                             <span>{prettyStatus(item)}</span>
-                                            {active && <CheckCircle2 size={16} className="ml-auto shrink-0"/>}
+                                            {active && <CheckCircle2 size={16} className="ml-auto shrink-0" />}
                                         </button>;
                                     })}
                                 </div>
@@ -494,14 +495,14 @@ export default function AdminDashboard() {
                             {statusEditor.nextStatus === "completed" && (
                                 <section className="overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
                                     <div className="flex items-start gap-3 border-b border-emerald-100 px-4 py-4 sm:px-5">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white"><BadgeCheck size={20}/></div>
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white"><BadgeCheck size={20} /></div>
                                         <div><h3 className="font-bold text-emerald-950">Deliver the PAN result</h3><p className="mt-1 text-xs leading-5 text-emerald-800">Enter the found PAN. PANKhojo will generate the protected PDF and email it to the registered customer.</p></div>
                                         <span className="ml-auto rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-800">Step 2</span>
                                     </div>
                                     <div className="space-y-3 p-4 sm:p-5">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-emerald-950" htmlFor="found-pan-number">Found PAN number <span className="text-rose-600">· Required</span></label>
-                                        <input id="found-pan-number" value={panNumber} onChange={(event) => setPanNumber(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10))} maxLength={10} placeholder="ABCDE1234F" autoComplete="off" spellCheck="false" className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3.5 font-mono text-lg font-bold tracking-[0.18em] text-slate-800 outline-none transition placeholder:font-normal placeholder:tracking-widest placeholder:text-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"/>
-                                        <div className="flex items-start gap-2 rounded-xl bg-white/80 p-3 text-xs leading-5 text-emerald-900"><ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-700"/>Double-check every character before sending. The PAN will be included in a password-protected PDF; the customer will receive a separate password email.</div>
+                                        <input id="found-pan-number" value={panNumber} onChange={(event) => setPanNumber(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10))} maxLength={10} placeholder="ABCDE1234F" autoComplete="off" spellCheck="false" className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3.5 font-mono text-lg font-bold tracking-[0.18em] text-slate-800 outline-none transition placeholder:font-normal placeholder:tracking-widest placeholder:text-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" />
+                                        <div className="flex items-start gap-2 rounded-xl bg-white/80 p-3 text-xs leading-5 text-emerald-900"><ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-700" />Double-check every character before sending. The PAN will be included in a password-protected PDF; the customer will receive a separate password email.</div>
                                     </div>
                                 </section>
                             )}
@@ -511,28 +512,28 @@ export default function AdminDashboard() {
                                     <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-bold text-slate-800">Explain the decision</p><p className="mt-0.5 text-xs text-slate-500">Keep the private admin note separate from the customer message.</p></div><span className="rounded-full bg-rose-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-700">Step 2 · Required</span></div>
                                     <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
                                         <div className="mb-3 flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200 text-slate-700"><ShieldCheck size={17}/></div><div><label htmlFor="internal-status-remark" className="block text-sm font-bold text-slate-800">Internal admin remark</label><p className="text-[11px] text-slate-500">Only authorised admins can see this</p></div></div>
+                                            <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200 text-slate-700"><ShieldCheck size={17} /></div><div><label htmlFor="internal-status-remark" className="block text-sm font-bold text-slate-800">Internal admin remark</label><p className="text-[11px] text-slate-500">Only authorised admins can see this</p></div></div>
                                             <span className={`text-xs font-semibold ${statusRemark.length >= 5 ? "text-emerald-700" : "text-slate-400"}`}>{statusRemark.length}/500</span>
                                         </div>
-                                        <textarea id="internal-status-remark" value={statusRemark} onChange={(event) => setStatusRemark(event.target.value.slice(0, 500))} rows={3} placeholder="Example: Request could not be processed because the submitted details did not match the verification records." className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#087e78] focus:ring-4 focus:ring-teal-500/10"/>
+                                        <textarea id="internal-status-remark" value={statusRemark} onChange={(event) => setStatusRemark(event.target.value.slice(0, 500))} rows={3} placeholder="Example: Request could not be processed because the submitted details did not match the verification records." className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#087e78] focus:ring-4 focus:ring-teal-500/10" />
                                         <p className="mt-2 text-[11px] text-slate-500">For internal context only. Do not include full Aadhaar or PAN details.</p>
                                     </div>
                                     <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 sm:p-5">
                                         <div className="mb-3 flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-800"><Mail size={17}/></div><div><label htmlFor="customer-status-message" className="block text-sm font-bold text-sky-950">Message for the customer</label><p className="text-[11px] text-sky-800">Shown in tracking and sent by email</p></div></div>
+                                            <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-800"><Mail size={17} /></div><div><label htmlFor="customer-status-message" className="block text-sm font-bold text-sky-950">Message for the customer</label><p className="text-[11px] text-sky-800">Shown in tracking and sent by email</p></div></div>
                                             <span className={`text-xs font-semibold ${customerMessage.length >= 5 ? "text-emerald-700" : "text-slate-400"}`}>{customerMessage.length}/500</span>
                                         </div>
-                                        <textarea id="customer-status-message" value={customerMessage} onChange={(event) => setCustomerMessage(event.target.value.slice(0, 500))} rows={3} placeholder="Example: We couldn't complete your request because the submitted information needs clarification. Please contact our support team before submitting another request." className="w-full resize-y rounded-xl border border-sky-200 bg-white px-3.5 py-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10"/>
+                                        <textarea id="customer-status-message" value={customerMessage} onChange={(event) => setCustomerMessage(event.target.value.slice(0, 500))} rows={3} placeholder="Example: We couldn't complete your request because the submitted information needs clarification. Please contact our support team before submitting another request." className="w-full resize-y rounded-xl border border-sky-200 bg-white px-3.5 py-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10" />
                                         <p className="mt-2 text-[11px] leading-5 text-sky-800">This is customer-visible. Explain the outcome and next step clearly. Never include Aadhaar, PAN or other sensitive identity details.</p>
                                     </div>
-                                    <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900"><AlertTriangle size={16} className="mt-0.5 shrink-0"/>Both explanations are required. The internal remark stays private; only the customer message is emailed and displayed publicly.</div>
+                                    <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900"><AlertTriangle size={16} className="mt-0.5 shrink-0" />Both explanations are required. The internal remark stays private; only the customer message is emailed and displayed publicly.</div>
                                 </section>
                             )}
 
                             {!["completed", "rejected", "cancelled"].includes(statusEditor.nextStatus) && (
                                 <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="flex items-center gap-2 text-slate-800"><MessageSquareText size={17}/><p className="text-sm font-semibold">Optional internal note</p></div>
-                                    <textarea value={statusRemark} onChange={(event) => setStatusRemark(event.target.value.slice(0, 500))} rows={2} placeholder="Add a short note for other administrators..." className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"/>
+                                    <div className="flex items-center gap-2 text-slate-800"><MessageSquareText size={17} /><p className="text-sm font-semibold">Optional internal note</p></div>
+                                    <textarea value={statusRemark} onChange={(event) => setStatusRemark(event.target.value.slice(0, 500))} rows={2} placeholder="Add a short note for other administrators..." className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
                                     <p className="mt-2 text-[11px] text-slate-500">Visible to authorised administrators only.</p>
                                 </section>
                             )}
@@ -541,10 +542,10 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 bg-white px-4 py-4 sm:flex-row sm:justify-between sm:px-7">
-                            <p className="hidden items-center gap-2 self-center text-[11px] text-slate-400 sm:flex"><ShieldCheck size={14}/> Changes are recorded in the admin activity log.</p>
+                            <p className="hidden items-center gap-2 self-center text-[11px] text-slate-400 sm:flex"><ShieldCheck size={14} /> Changes are recorded in the admin activity log.</p>
                             <div className="flex justify-end gap-2">
                                 <button onClick={() => setStatusEditor(null)} disabled={!!updatingId} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">Cancel</button>
-                                <button onClick={updateStatus} disabled={!!updatingId || statusEditor.nextStatus === statusEditor.request.status || (statusEditor.nextStatus === "completed" && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(panNumber.trim())) || (["rejected", "cancelled"].includes(statusEditor.nextStatus) && (statusRemark.trim().length < 5 || customerMessage.trim().length < 5))} className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${statusEditor.nextStatus === "completed" ? "bg-emerald-700 hover:bg-emerald-800" : ["rejected", "cancelled"].includes(statusEditor.nextStatus) ? "bg-rose-700 hover:bg-rose-800" : "bg-[#17365d] hover:bg-[#102744]"}`}>{updatingId ? <LoaderCircle size={15} className="animate-spin"/> : statusEditor.nextStatus === "completed" ? <Mail size={15}/> : <Check size={15}/>} {updatingId ? "Processing..." : statusEditor.nextStatus === "completed" ? "Complete & Send PAN" : "Save status"}</button>
+                                <button onClick={updateStatus} disabled={!!updatingId || statusEditor.nextStatus === statusEditor.request.status || (statusEditor.nextStatus === "completed" && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(panNumber.trim())) || (["rejected", "cancelled"].includes(statusEditor.nextStatus) && (statusRemark.trim().length < 5 || customerMessage.trim().length < 5))} className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${statusEditor.nextStatus === "completed" ? "bg-emerald-700 hover:bg-emerald-800" : ["rejected", "cancelled"].includes(statusEditor.nextStatus) ? "bg-rose-700 hover:bg-rose-800" : "bg-[#17365d] hover:bg-[#102744]"}`}>{updatingId ? <LoaderCircle size={15} className="animate-spin" /> : statusEditor.nextStatus === "completed" ? <Mail size={15} /> : <Check size={15} />} {updatingId ? "Processing..." : statusEditor.nextStatus === "completed" ? "Complete & Send PAN" : "Save status"}</button>
                             </div>
                         </div>
                     </section>
@@ -561,7 +562,7 @@ export default function AdminDashboard() {
                         <div className="space-y-6 p-5 sm:p-7">
                             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4 sm:p-5">
                                 <div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current application status</p><div className="mt-2"><StatusBadge status={selected.status} /></div></div>
-                                <button onClick={() => openStatusEditor(selected)} disabled={updatingId === selected.id} className="inline-flex items-center gap-2 rounded-xl bg-[#17365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#102744] disabled:opacity-50"><SlidersHorizontal size={15} /> Change status</button>
+                                <button onClick={() => openStatusEditor(selected)} disabled={updatingId === selected.id || Boolean(selected.payment_status && selected.payment_status !== "verified")} title={selected.payment_status && selected.payment_status !== "verified" ? "Payment must be verified before processing this request." : "Change request status"} className="inline-flex items-center gap-2 rounded-xl bg-[#17365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#102744] disabled:cursor-not-allowed disabled:opacity-40"><SlidersHorizontal size={15} /> {selected.payment_status && selected.payment_status !== "verified" ? "Payment pending" : "Change status"}</button>
                             </div>
                             <div>
                                 <h3 className="mb-3 text-sm font-bold text-[#172b45]">Customer information</h3>
@@ -569,6 +570,7 @@ export default function AdminDashboard() {
                                     <Info label="Full name" value={selected.full_name} icon={UserRound} />
                                     <Info label="Email address" value={selected.email} icon={Mail} />
                                     <Info label="Phone number" value={selected.phone} icon={Phone} />
+                                    <Info label="Payment verification" value={selected.payment_status ? prettyStatus(selected.payment_status) : "Legacy request / not linked"} icon={ShieldCheck} />
                                     <Info label="Date of birth" value={selected.date_of_birth || "—"} icon={CalendarDays} />
                                     <Info label="Father's name" value={selected.father_name || "—"} icon={UserRound} />
                                     <Info label="City / State" value={`${selected.city || "—"}, ${selected.state || "—"}`} icon={MapPin} />

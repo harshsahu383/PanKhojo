@@ -94,6 +94,7 @@ export const getRequests = async ({
         `SELECT
             id, request_number, full_name, email, phone, aadhaar_last4,
             status, created_at, updated_at,
+            (SELECT po.status FROM payment_orders po WHERE po.request_id = service_requests.id LIMIT 1) AS payment_status,
             (SELECT l.description
              FROM request_logs l
              WHERE l.request_id = service_requests.id
@@ -130,6 +131,7 @@ export const getRequestById = async (id) => {
             privacy_consent, terms_consent, privacy_policy_version,
             terms_version, consented_at,
             status, created_at, updated_at,
+       (SELECT po.status FROM payment_orders po WHERE po.request_id = service_requests.id LIMIT 1) AS payment_status,
        (SELECT l.description FROM request_logs l
           WHERE l.request_id = service_requests.id AND l.action = 'status_updated'
           ORDER BY l.created_at DESC, l.id DESC LIMIT 1) AS latest_status_remark
@@ -228,7 +230,8 @@ export const recordAadhaarAccess = async ({ requestId, adminId }) => {
 // Customer identity fields and internal admin notes are never exposed.
 export const getPublicRequestTracking = async ({ requestNumber, email }) => {
     const [requests] = await pool.execute(
-        `SELECT id, request_number, status, created_at, updated_at, customer_message
+        `SELECT id, request_number, status, created_at, updated_at, customer_message,
+                  (SELECT po.status FROM payment_orders po WHERE po.request_id = service_requests.id LIMIT 1) AS payment_status
            FROM service_requests
           WHERE request_number = ? AND LOWER(email) = LOWER(?)
           LIMIT 1`,
@@ -248,6 +251,7 @@ export const getPublicRequestTracking = async ({ requestNumber, email }) => {
     return {
         requestNumber: request.request_number,
         status: request.status,
+        paymentStatus: request.payment_status || null,
         createdAt: request.created_at,
         updatedAt: request.updated_at,
         customerMessage: ["rejected", "cancelled"].includes(request.status) ? request.customer_message : null,

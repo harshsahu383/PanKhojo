@@ -9,6 +9,15 @@ import {
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
+// QR image paths are served by the backend. Absolute HTTPS URLs and image data URLs
+// are also supported. Relative values such as /public/upi-qr.png resolve against API.
+const resolveQrImageUrl = (value) => {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  if (/^(https?:\/\/|data:image\/)/i.test(source)) return source;
+  return new URL(source.replace(/^\/+/, ""), `${API.replace(/\/+$/, "")}/`).toString();
+};
+
 const initial = {
   fullName: "",
   email: "",
@@ -42,7 +51,7 @@ const copy = {
     failed: "Unable to submit your request. Please try again.",
     success: "Your request has been submitted successfully.",
     ref: "Your request reference number",
-    note: "Your request is created only after payment is verified.",
+    note: "Your request is created after UTR submission. Processing starts only after payment verification.",
     help: "Need help?",
     helpText: "For assistance, please contact our support team.",
     processTitle: "How PANKhojo works",
@@ -71,16 +80,16 @@ const copy = {
     reviewIntro: "Check these details carefully before continuing to payment.",
     editDetails: "Edit details",
     payNow: "Continue to UPI payment",
-    paymentProcessing: "Verifying payment...",
+    paymentProcessing: "Preparing checkout...",
     serviceFee: "Payment amount",
-    feeNotice: "Scan the PANKhojo UPI QR code, pay the exact amount, then submit your UPI transaction reference. Your request is created only after our team verifies the bank credit.",
+    feeNotice: "Scan the PANKhojo UPI QR code, pay the exact amount, then submit your UPI transaction reference. Your request reference is created after UTR submission; processing starts only after bank verification.",
     maskedAadhaar: "XXXX XXXX",
     optionalNotProvided: "Not provided",
     paymentSuccessTitle: "Payment submitted for verification",
-    paymentSuccessText: "We have received your UPI transaction details. Your request will be created after our team verifies the payment in the business bank account.",
-    receiptSentText: "You will receive your request reference by email after payment verification.",
-    receiptPendingText: "Please do not make another payment while this payment is being checked. Keep your UPI transaction reference for your records.",
-    emailNotice: "We will email your request reference after your payment is verified."
+    paymentSuccessText: "We have received your UPI transaction details and created your request reference. Request processing will begin only after our team verifies the payment in the business bank account.",
+    receiptSentText: "Your request reference is available on the confirmation page. We will send payment confirmation after verification.",
+    receiptPendingText: "Please do not make another payment while this payment is being checked. Keep your payment and request references for your records.",
+    emailNotice: "We will send a payment confirmation email after verification."
   },
   hi: {
     back: "होम पर वापस जाएं",
@@ -103,7 +112,7 @@ const copy = {
     failed: "आपका अनुरोध सबमिट नहीं हो सका। कृपया दोबारा प्रयास करें।",
     success: "आपका अनुरोध सफलतापूर्वक सबमिट हो गया है।",
     ref: "आपका अनुरोध रेफरेंस नंबर",
-    note: "भुगतान सत्यापित होने के बाद ही आपका अनुरोध बनाया जाएगा।",
+    note: "UTR सबमिट करने के बाद आपका अनुरोध बनेगा। प्रोसेसिंग भुगतान सत्यापन के बाद शुरू होगी।",
     help: "मदद चाहिए?",
     helpText: "सहायता के लिए हमारी सपोर्ट टीम से संपर्क करें।",
     processTitle: "PANKhojo कैसे काम करता है",
@@ -132,16 +141,16 @@ const copy = {
     reviewIntro: "भुगतान से पहले कृपया सभी विवरण ध्यान से जांच लें।",
     editDetails: "जानकारी बदलें",
     payNow: "UPI भुगतान के लिए आगे बढ़ें",
-    paymentProcessing: "भुगतान सत्यापित हो रहा है...",
+    paymentProcessing: "पेमेंट पेज तैयार हो रहा है...",
     serviceFee: "भुगतान राशि",
-    feeNotice: "PANKhojo का UPI QR स्कैन करें, सही राशि का भुगतान करें और UPI ट्रांजैक्शन रेफरेंस सबमिट करें। बैंक में भुगतान सत्यापित होने के बाद ही अनुरोध बनाया जाएगा।",
+    feeNotice: "PANKhojo का UPI QR स्कैन करें, सही राशि का भुगतान करें और UPI ट्रांजैक्शन रेफरेंस सबमिट करें। UTR सबमिट करने के बाद अनुरोध रेफरेंस बनेगा; प्रोसेसिंग बैंक सत्यापन के बाद शुरू होगी।",
     maskedAadhaar: "XXXX XXXX",
     optionalNotProvided: "नहीं दिया गया",
     paymentSuccessTitle: "भुगतान सत्यापन के लिए भेजा गया",
-    paymentSuccessText: "आपके UPI भुगतान की जानकारी मिल गई है। बैंक में भुगतान सत्यापित होने के बाद ही आपका अनुरोध बनाया जाएगा।",
-    receiptSentText: "भुगतान सत्यापन के बाद अनुरोध रेफरेंस आपके ईमेल पर भेजा जाएगा।",
-    receiptPendingText: "सत्यापन के दौरान दोबारा भुगतान न करें। UPI ट्रांजैक्शन रेफरेंस अपने पास सुरक्षित रखें।",
-    emailNotice: "भुगतान सत्यापित होने के बाद अनुरोध रेफरेंस ईमेल किया जाएगा।"
+    paymentSuccessText: "आपके UPI भुगतान की जानकारी मिल गई है और अनुरोध रेफरेंस बना दिया गया है। बैंक में भुगतान सत्यापित होने के बाद ही प्रोसेसिंग शुरू होगी।",
+    receiptSentText: "आपका अनुरोध रेफरेंस पुष्टि पेज पर उपलब्ध है। भुगतान सत्यापन के बाद ईमेल से पुष्टि भेजी जाएगी।",
+    receiptPendingText: "सत्यापन के दौरान दोबारा भुगतान न करें। भुगतान और अनुरोध रेफरेंस सुरक्षित रखें।",
+    emailNotice: "भुगतान सत्यापित होने के बाद ईमेल से पुष्टि भेजी जाएगी।"
   }
 };
 
@@ -233,9 +242,11 @@ export default function RequestPreview({ language = "en", onBack }) {
   const [result, setResult] = useState(null);
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [utr, setUtr] = useState("");
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [error, setError] = useState("");
   const [step, setStep] = useState("form");
-  const [secondsLeft, setSecondsLeft] = useState(15 * 60);
+  const [secondsLeft, setSecondsLeft] = useState(5 * 60);
+  const [qrImageFailed, setQrImageFailed] = useState(false);
   const [statusCheck, setStatusCheck] = useState(null);
   const [copied, setCopied] = useState("");
   const [showUtrForm, setShowUtrForm] = useState(false);
@@ -282,9 +293,12 @@ export default function RequestPreview({ language = "en", onBack }) {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || t.failed);
       setPaymentDetails(data);
-      setSecondsLeft(15 * 60);
+      setSecondsLeft(5 * 60);
+      setQrImageFailed(false);
       setStatusCheck(null);
       setShowUtrForm(false);
+      setPaymentConfirmed(false);
+      setUtr("");
       setAutoChecking(false);
       setStep("payment");
     } catch (err) { setError(err.message || t.failed); }
@@ -292,15 +306,39 @@ export default function RequestPreview({ language = "en", onBack }) {
   };
 
   const submitPaymentReference = async () => {
+    if (secondsLeft <= 0) {
+      setError("This checkout has expired after five minutes. If you already paid, do not pay again; contact support with your payment reference.");
+      return;
+    }
     setError(""); setBusy(true);
     try {
       const response = await fetch(`${API}/api/payments/submit-manual`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentReference: paymentDetails.paymentReference, utr })
+        body: JSON.stringify({
+          paymentReference: paymentDetails.paymentReference,
+          utr,
+          paymentConfirmed,
+          requestData: {
+            ...form,
+            consent: true,
+            consentDetails: {
+              privacyAccepted,
+              termsAccepted,
+              privacyVersion: "1.0",
+              termsVersion: "1.0"
+            }
+          }
+        })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || t.failed);
-      setResult({ message: data.message, email: form.email });
+      setResult({
+        message: data.message,
+        email: form.email,
+        requestNumber: data.requestNumber,
+        verificationTime: data.verificationTime,
+        paymentReference: data.paymentReference || paymentDetails.paymentReference
+      });
       setAutoChecking(true);
       setStep("complete");
     } catch (err) { setError(err.message || t.failed); }
@@ -308,10 +346,15 @@ export default function RequestPreview({ language = "en", onBack }) {
   };
 
   useEffect(() => {
-    if (step !== "payment" || secondsLeft <= 0) return;
-    const timer = window.setInterval(() => setSecondsLeft(value => Math.max(0, value - 1)), 1000);
+    if (step !== "payment" || !paymentDetails?.expiresAt) return;
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((new Date(paymentDetails.expiresAt).getTime() - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+    };
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
     return () => window.clearInterval(timer);
-  }, [step, secondsLeft > 0]);
+  }, [step, paymentDetails?.expiresAt]);
 
   const copyPaymentValue = async (value, label) => {
     try { await navigator.clipboard.writeText(value); setCopied(label); window.setTimeout(() => setCopied(""), 1800); }
@@ -345,9 +388,161 @@ export default function RequestPreview({ language = "en", onBack }) {
     return () => window.clearInterval(timer);
   }, [step, autoChecking, paymentDetails?.paymentReference, utr]);
 
+  const qrImageUrl = resolveQrImageUrl(paymentDetails?.qrImage);
+
   const documentContent = legalDocument
     ? legalDocuments[legalDocument][language] || legalDocuments[legalDocument].en
     : [];
+
+  // Checkout and confirmation are presented as dedicated full-page views,
+  // separate from the request form and review screen.
+  if ((step === "payment" || step === "complete") && paymentDetails) {
+    const paymentVerified = statusCheck?.status === "verified";
+    const paymentRejected = statusCheck?.status === "rejected";
+    const requestReference = result?.requestNumber || statusCheck?.requestNumber;
+
+    return (
+      <main className="pankhojo-request-page min-h-screen bg-[#F3F6F9] px-4 py-5 text-[#17283D] sm:px-6 sm:py-8">
+        <div className="mx-auto max-w-5xl">
+          <header className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E4EAF0] bg-white px-4 py-4 shadow-sm sm:px-6">
+            <strong className="text-xl text-[#17365D]">PAN<span className="text-[#16A68A]">Khojo</span></strong>
+            {step === "payment" ? (
+              <button type="button" onClick={() => { setStep("review"); setError(""); }} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#D6E0E9] px-3 py-2 text-sm font-semibold text-[#43566D]">
+                <ArrowLeft size={16} /> Back to review
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-2 rounded-full bg-[#FFF7E8] px-3 py-2 text-xs font-bold text-[#95621A]">
+                <Clock3 size={15} /> {paymentVerified ? "Payment verified" : paymentRejected ? "Payment needs attention" : "Awaiting verification"}
+              </span>
+            )}
+          </header>
+
+          {step === "payment" ? (
+            <>
+              <div className="mb-6 text-center">
+                <p className="text-[11px] font-extrabold uppercase tracking-[.2em] text-[#159B83]">Secure UPI checkout</p>
+                <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#17365D] sm:text-3xl">Complete your payment</h1>
+                <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#69798D]">Scan the QR code or use the UPI ID below. After paying, enter your UTR and confirm the payment to submit your request.</p>
+              </div>
+
+              <div className="grid items-start gap-5 lg:grid-cols-[1fr_1fr]">
+                <section className="rounded-2xl border border-[#E0E8EF] bg-white p-5 shadow-sm sm:p-7">
+                  <div className="rounded-xl bg-[#17365D] px-4 py-5 text-center text-white">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-white/75">Total amount</p>
+                    <p className="mt-1 text-4xl font-extrabold">₹{(paymentDetails.amount / 100).toFixed(2)}</p>
+                    <p className="mt-1 text-xs text-white/75">PANKhojo service fee · INR</p>
+                  </div>
+                  <div className="mt-4 rounded-xl border border-[#E4EAF0] bg-[#FAFCFD] p-4 text-center">
+                    <p className="text-sm font-extrabold text-[#17365D]">Pay to {paymentDetails.payeeName}</p>
+                    <p className="mt-1 text-xs text-[#64758A]">Scan this QR code using any supported UPI app</p>
+                    <div className="mx-auto mt-4 flex min-h-[220px] w-full max-w-[240px] items-center justify-center rounded-xl border border-[#E5EAF0] bg-white p-2">
+                      {qrImageUrl && !qrImageFailed ? (
+                        <img src={qrImageUrl} alt="PANKhojo UPI payment QR code" className="h-auto max-h-[220px] w-full max-w-[220px] object-contain" onError={() => setQrImageFailed(true)} />
+                      ) : (
+                        <div role="alert" className="px-3 py-5 text-center text-xs leading-5 text-rose-700">
+                          <p className="font-bold">QR code could not be loaded.</p>
+                          <p className="mt-1">Use the UPI ID below, or contact support before paying.</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-4 break-all text-sm font-bold text-[#17365D]">{paymentDetails.upiId}</p>
+                    <button type="button" onClick={() => copyPaymentValue(paymentDetails.upiId, "upi")} className="mt-2 inline-flex min-h-10 items-center justify-center rounded-lg border border-[#D8E2EA] bg-white px-4 py-2 text-xs font-bold text-[#43566D]">
+                      <Copy size={14} className="mr-2" />{copied === "upi" ? "Copied" : "Copy UPI ID"}
+                    </button>
+                  </div>
+                  <div className="mt-4 rounded-xl border border-[#F0DFB7] bg-[#FFFAEE] p-4 text-xs leading-5 text-[#805C20]">
+                    <strong>Before you pay:</strong> confirm the payee name in your UPI app is exactly <strong>{paymentDetails.payeeName}</strong> and the amount is ₹{(paymentDetails.amount / 100).toFixed(2)}. If either detail differs, stop and contact support.
+                  </div>
+                  <div className="mt-4 rounded-xl bg-[#F4F7FA] p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#718198]">Payment reference</p>
+                    <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                      <p className="min-w-0 break-all text-sm font-extrabold text-[#17365D]">{paymentDetails.paymentReference}</p>
+                      <button type="button" onClick={() => copyPaymentValue(paymentDetails.paymentReference, "reference")} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#D8E2EA] bg-white px-3 py-2 text-xs font-bold text-[#43566D]">
+                        <Copy size={13} />{copied === "reference" ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-[#E0E8EF] bg-white p-5 shadow-sm sm:p-7">
+                  <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#F4F7FA] p-4">
+                    <div><p className="text-sm font-bold text-[#17365D]">Checkout time remaining</p><p className="mt-1 text-xs text-[#718198]">This payment reference expires after 5 minutes.</p></div>
+                    <p aria-live="off" className={`font-mono text-2xl font-extrabold tabular-nums ${secondsLeft <= 60 ? "text-rose-700" : "text-[#176B5A]"}`}>{String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:{String(secondsLeft % 60).padStart(2, "0")}</p>
+                  </div>
+                  {secondsLeft <= 0 ? (
+                    <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-800">
+                      <p className="font-bold">Checkout expired and has been cancelled.</p>
+                      <p className="mt-1 text-xs">If you transferred money just before expiry, do not pay again. Contact support and share your payment reference so the transfer can be checked.</p>
+                      <button type="button" onClick={() => { setStep("review"); setPaymentDetails(null); setUtr(""); setPaymentConfirmed(false); setStatusCheck(null); setError(""); }} className="mt-4 h-11 w-full rounded-xl bg-[#17365D] px-4 text-sm font-bold text-white">Return to review</button>
+                    </div>
+                  ) : <>
+                    <h2 className="text-lg font-extrabold text-[#17365D]">How to complete payment</h2>
+                    <ol className="mt-4 space-y-3 text-sm leading-6 text-[#52667D]">
+                      <li className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EAF5F2] text-xs font-extrabold text-[#148B76]">1</span><span>Open your UPI app and scan the QR code, or pay using the UPI ID.</span></li>
+                      <li className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EAF5F2] text-xs font-extrabold text-[#148B76]">2</span><span>Pay the exact amount shown above. Check the payee name before confirming in your UPI app.</span></li>
+                      <li className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EAF5F2] text-xs font-extrabold text-[#148B76]">3</span><span>After a successful payment, open transaction details in your UPI app and copy the UTR / transaction reference.</span></li>
+                      <li className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EAF5F2] text-xs font-extrabold text-[#148B76]">4</span><span>Enter the UTR below, tick the confirmation checkbox and submit it for verification.</span></li>
+                    </ol>
+
+                    <div className="mt-6 border-t border-[#E9EEF3] pt-5">
+                      <label className="mb-2 block text-sm font-bold text-[#17365D]" htmlFor="pk-utr">UPI transaction reference / UTR</label>
+                      <input id="pk-utr" value={utr} onChange={(e) => { setUtr(e.target.value.replace(/[^A-Za-z0-9-]/g, "").slice(0, 35)); setStatusCheck(null); }} placeholder="Enter your UTR" autoComplete="off" inputMode="text" className="h-12 w-full rounded-xl border border-[#D6E0E9] bg-white px-4 text-sm outline-none focus:border-teal-500" />
+                      <p className="mt-2 text-xs leading-5 text-[#6B7C8F]">The UTR is usually available in your UPI app's transaction details. Never enter your UPI PIN, OTP or banking password.</p>
+                      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#DCECE7] bg-[#F3FAF7] p-3 text-xs leading-5 text-[#365D55]">
+                        <input type="checkbox" checked={paymentConfirmed} onChange={(e) => setPaymentConfirmed(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#159B83]" />
+                        <span>I confirm that I have completed the UPI payment and entered the correct UTR for this transaction.</span>
+                      </label>
+                      <button type="button" onClick={submitPaymentReference} disabled={busy || utr.trim().length < 8 || !paymentConfirmed} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17365D] px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                        {busy ? "Submitting..." : "Submit UTR and create request"} <ArrowRight size={17} />
+                      </button>
+                    </div>
+                    <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#E3EAF0] bg-[#F8FAFC] p-3 text-[11px] leading-5 text-[#62748A]">
+                      <ShieldCheck size={17} className="mt-0.5 shrink-0 text-[#16856F]" />
+                      <p>Submitting a UTR does not confirm payment. Your request reference will be created, but payment remains pending until our team verifies the actual bank credit.</p>
+                    </div>
+                    {error && <div role="alert" className="mt-4 rounded-xl border border-[#F1D0CC] bg-[#FFF6F5] px-4 py-3 text-xs text-[#A33D35]">{error}</div>}
+                  </>}
+                </section>
+              </div>
+            </>
+          ) : (
+            <section className="mx-auto max-w-2xl rounded-2xl border border-[#E0E8EF] bg-white p-5 shadow-sm sm:p-8">
+              <div className="text-center">
+                <span className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl ${paymentVerified ? "bg-[#E8F7EF] text-[#16845F]" : paymentRejected ? "bg-[#FFF0EF] text-[#B4473F]" : "bg-[#FFF7E8] text-[#A36B17]"}`}>
+                  {paymentVerified ? <Check size={28} /> : paymentRejected ? <X size={28} /> : <Clock3 size={28} />}
+                </span>
+                <p className="mt-5 text-[11px] font-extrabold uppercase tracking-[.18em] text-[#159B83]">Request confirmation</p>
+                <h1 className="mt-2 text-2xl font-extrabold text-[#17365D] sm:text-3xl">
+                  {paymentVerified ? "Payment verified" : paymentRejected ? "Payment needs attention" : "Your request is submitted"}
+                </h1>
+                <p className="mt-3 text-sm leading-6 text-[#69798D]">{statusCheck?.message || result?.message}</p>
+              </div>
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                <div className="min-w-0 rounded-xl bg-[#F4F7FA] p-4">
+                  <p className="text-xs text-[#718198]">Payment reference</p>
+                  <p className="mt-2 break-all text-sm font-extrabold text-[#17365D]">{paymentDetails.paymentReference}</p>
+                </div>
+                <div className="min-w-0 rounded-xl bg-[#F4F7FA] p-4">
+                  <p className="text-xs text-[#718198]">Request reference</p>
+                  <p className="mt-2 break-all text-sm font-extrabold text-[#17365D]">{requestReference || "Being prepared"}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-[#F0DFB7] bg-[#FFFAEE] p-4">
+                <p className="text-sm font-bold text-[#805C20]">{paymentVerified ? "Payment confirmed by our team" : paymentRejected ? "Please contact support before making another payment" : "Payment verification is pending"}</p>
+                <p className="mt-1 text-xs leading-6 text-[#805C20]">{paymentVerified ? "Your request is ready for processing. We will send updates to your registered email address." : paymentRejected ? "Our team could not match the UTR to a settled bank credit. Please contact support with your payment reference and UTR." : `We will check the UTR against the business bank account. ${result?.verificationTime || "We will notify you as soon as verification is complete."} Do not make another payment while this submission is being checked.`}</p>
+              </div>
+
+              <p className="mt-4 text-center text-xs text-[#718198]">Confirmation email: {form.email}</p>
+              <button type="button" onClick={() => onBack?.()} className="mt-6 h-12 w-full rounded-xl bg-[#17365D] px-5 text-sm font-bold text-white">Back to PANKhojo</button>
+              {autoChecking && <p className="mt-3 text-center text-[11px] text-[#718198]">Payment status refreshes automatically while this page is open.</p>}
+            </section>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="pankhojo-request-page min-h-screen bg-[#F3F6F9] text-[#17283D]">
@@ -441,59 +636,59 @@ export default function RequestPreview({ language = "en", onBack }) {
 
               <div className="p-5 sm:p-8">
                 {step === "form" && <>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field name="fullName" label={t.fullName} value={form.fullName} onChange={update} icon={UserRound} required />
-                  <Field name="email" label={t.email} value={form.email} onChange={update} type="email" icon={Mail} required />
-                  <Field name="phone" label={t.phone} value={form.phone} onChange={update} type="tel" icon={Phone} required />
-                  <Field name="aadhaarNumber" label={t.aadhaar} value={form.aadhaarNumber} onChange={update} type="password" icon={Fingerprint} required />
-                  <Field name="dateOfBirth" label={t.dob} value={form.dateOfBirth} onChange={update} type="date" icon={CalendarDays} />
-                  <Field name="fatherName" label={t.father} value={form.fatherName} onChange={update} icon={UserRound} />
-                  <Field name="city" label={t.city} value={form.city} onChange={update} icon={MapPin} />
-                  <Field name="state" label={t.state} value={form.state} onChange={update} icon={MapPin} />
-                </div>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field name="fullName" label={t.fullName} value={form.fullName} onChange={update} icon={UserRound} required />
+                    <Field name="email" label={t.email} value={form.email} onChange={update} type="email" icon={Mail} required />
+                    <Field name="phone" label={t.phone} value={form.phone} onChange={update} type="tel" icon={Phone} required />
+                    <Field name="aadhaarNumber" label={t.aadhaar} value={form.aadhaarNumber} onChange={update} type="password" icon={Fingerprint} required />
+                    <Field name="dateOfBirth" label={t.dob} value={form.dateOfBirth} onChange={update} type="date" icon={CalendarDays} />
+                    <Field name="fatherName" label={t.father} value={form.fatherName} onChange={update} icon={UserRound} />
+                    <Field name="city" label={t.city} value={form.city} onChange={update} icon={MapPin} />
+                    <Field name="state" label={t.state} value={form.state} onChange={update} icon={MapPin} />
+                  </div>
 
-                <div className="mt-7 rounded-2xl border border-[#DCECE7] bg-[#F3FAF7] p-4">
-                  <div className="flex gap-3">
-                    <LockKeyhole size={19} className="mt-1 shrink-0 text-[#138B76]" />
-                    <div>
-                      <h4 className="text-sm font-bold text-[#1D4A43]">{t.privacyNoticeTitle}</h4>
-                      <p className="mt-1 text-xs leading-6 text-[#52716A]">{t.privacyNoticeText}</p>
+                  <div className="mt-7 rounded-2xl border border-[#DCECE7] bg-[#F3FAF7] p-4">
+                    <div className="flex gap-3">
+                      <LockKeyhole size={19} className="mt-1 shrink-0 text-[#138B76]" />
+                      <div>
+                        <h4 className="text-sm font-bold text-[#1D4A43]">{t.privacyNoticeTitle}</h4>
+                        <p className="mt-1 text-xs leading-6 text-[#52716A]">{t.privacyNoticeText}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-6 space-y-4 rounded-xl border border-[#E4EAF0] p-4">
-                  <label className="flex cursor-pointer items-start gap-3 text-xs leading-6 text-[#586A7E]">
-                    <input
-                      type="checkbox"
-                      checked={privacyAccepted}
-                      onChange={e => setPrivacyAccepted(e.target.checked)}
-                      className="mt-1 h-4 w-4 accent-[#159B83]"
-                    />
-                    <span>
-                      {t.privacyCheck}{" "}
-                      <button type="button" onClick={() => setLegalDocument("privacy")} className="font-bold text-[#087F78] underline">
-                        {t.privacy}
-                      </button>
-                    </span>
-                  </label>
+                  <div className="mt-6 space-y-4 rounded-xl border border-[#E4EAF0] p-4">
+                    <label className="flex cursor-pointer items-start gap-3 text-xs leading-6 text-[#586A7E]">
+                      <input
+                        type="checkbox"
+                        checked={privacyAccepted}
+                        onChange={e => setPrivacyAccepted(e.target.checked)}
+                        className="mt-1 h-4 w-4 accent-[#159B83]"
+                      />
+                      <span>
+                        {t.privacyCheck}{" "}
+                        <button type="button" onClick={() => setLegalDocument("privacy")} className="font-bold text-[#087F78] underline">
+                          {t.privacy}
+                        </button>
+                      </span>
+                    </label>
 
-                  <label className="flex cursor-pointer items-start gap-3 text-xs leading-6 text-[#586A7E]">
-                    <input
-                      type="checkbox"
-                      checked={termsAccepted}
-                      onChange={e => setTermsAccepted(e.target.checked)}
-                      className="mt-1 h-4 w-4 accent-[#159B83]"
-                    />
-                    <span>
-                      {t.termsCheck}{" "}
-                      <button type="button" onClick={() => setLegalDocument("terms")} className="font-bold text-[#087F78] underline">
-                        {t.terms}
-                      </button>
-                    </span>
-                  </label>
-                  <p className="pl-7 text-xs leading-5 text-slate-500">Cancellation & refund: <a href="/refund-policy.html" target="_blank" rel="noreferrer" className="font-bold text-[#087F78] underline">Read the full policy</a></p>
-                </div>
+                    <label className="flex cursor-pointer items-start gap-3 text-xs leading-6 text-[#586A7E]">
+                      <input
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={e => setTermsAccepted(e.target.checked)}
+                        className="mt-1 h-4 w-4 accent-[#159B83]"
+                      />
+                      <span>
+                        {t.termsCheck}{" "}
+                        <button type="button" onClick={() => setLegalDocument("terms")} className="font-bold text-[#087F78] underline">
+                          {t.terms}
+                        </button>
+                      </span>
+                    </label>
+                    <p className="pl-7 text-xs leading-5 text-slate-500">Cancellation & refund: <a href="/refund-policy.html" target="_blank" rel="noreferrer" className="font-bold text-[#087F78] underline">Read the full policy</a></p>
+                  </div>
 
                 </>}
 
@@ -521,7 +716,7 @@ export default function RequestPreview({ language = "en", onBack }) {
                     </div>
                     <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                       <button type="button" onClick={() => { setStep("form"); setError(""); }} className="h-12 rounded-xl border border-[#D6E0E9] px-5 text-sm font-bold text-[#43566D]">{t.editDetails}</button>
-                      <button type="button" onClick={startPayment} disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#17365D] px-5 text-sm font-bold text-white disabled:opacity-60">{busy ? t.paymentProcessing : t.payNow}<ArrowRight size={17}/></button>
+                      <button type="button" onClick={startPayment} disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#17365D] px-5 text-sm font-bold text-white disabled:opacity-60">{busy ? t.paymentProcessing : t.payNow}<ArrowRight size={17} /></button>
                     </div>
                   </div>
                 )}
@@ -529,7 +724,7 @@ export default function RequestPreview({ language = "en", onBack }) {
                 {step === "payment" && paymentDetails && (
                   <div className="overflow-hidden rounded-2xl border border-[#DCE5ED] bg-white shadow-sm">
                     <div className="bg-gradient-to-r from-[#17365D] to-[#176B70] px-5 py-5 text-center text-white">
-                      <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-white/15"><ShieldCheck size={23}/></div>
+                      <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-white/15"><ShieldCheck size={23} /></div>
                       <p className="text-xs font-bold uppercase tracking-[.18em] text-white/75">PANKhojo secure checkout</p>
                       <p className="mt-2 text-3xl font-extrabold">₹{(paymentDetails.amount / 100).toFixed(2)}</p>
                       <p className="mt-1 text-xs text-white/80">PAN Finding Service Fee · INR</p>
@@ -537,19 +732,19 @@ export default function RequestPreview({ language = "en", onBack }) {
                     <div className="p-5">
                       <div className="flex items-center justify-between rounded-xl border border-[#DCECE7] bg-[#F3FAF7] px-3 py-3">
                         <div><p className="text-[10px] font-bold uppercase tracking-wider text-[#668078]">Payment reference</p><p className="mt-1 break-all text-sm font-extrabold text-[#17365D]">{paymentDetails.paymentReference}</p></div>
-                        <button type="button" onClick={() => copyPaymentValue(paymentDetails.paymentReference, "reference")} className="ml-2 rounded-lg border border-[#C9DED6] bg-white px-3 py-2 text-xs font-bold text-[#176B5A]"><Copy size={13} className="mr-1 inline"/>{copied === "reference" ? "Copied" : "Copy"}</button>
+                        <button type="button" onClick={() => copyPaymentValue(paymentDetails.paymentReference, "reference")} className="ml-2 rounded-lg border border-[#C9DED6] bg-white px-3 py-2 text-xs font-bold text-[#176B5A]"><Copy size={13} className="mr-1 inline" />{copied === "reference" ? "Copied" : "Copy"}</button>
                       </div>
                       <div className="mt-4 rounded-2xl border border-[#E4EAF0] bg-[#FAFCFD] p-4 text-center">
                         <p className="text-sm font-extrabold text-[#17365D]">Pay to {paymentDetails.payeeName}</p>
                         <p className="mt-1 text-xs text-[#64758A]">Scan this merchant QR using your UPI app</p>
                         <img src={paymentDetails.qrImage} alt="Merchant UPI QR code" className="mx-auto mt-4 h-52 w-52 rounded-xl border border-[#E5EAF0] bg-white object-contain p-2" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                         <p className="mt-3 break-all text-sm font-bold text-[#17365D]">{paymentDetails.upiId}</p>
-                        <button type="button" onClick={() => copyPaymentValue(paymentDetails.upiId, "upi")} className="mt-2 rounded-lg border border-[#D8E2EA] bg-white px-3 py-2 text-xs font-bold text-[#43566D]"><Copy size={13} className="mr-1 inline"/>{copied === "upi" ? "Copied" : "Copy UPI ID"}</button>
+                        <button type="button" onClick={() => copyPaymentValue(paymentDetails.upiId, "upi")} className="mt-2 rounded-lg border border-[#D8E2EA] bg-white px-3 py-2 text-xs font-bold text-[#43566D]"><Copy size={13} className="mr-1 inline" />{copied === "upi" ? "Copied" : "Copy UPI ID"}</button>
                         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-left text-[11px] leading-5 text-amber-900">Before paying, confirm the payee name shown inside your UPI app matches <strong>{paymentDetails.payeeName}</strong> and the amount is exactly ₹{(paymentDetails.amount / 100).toFixed(2)}. If it does not match, do not pay and contact support.</p>
                       </div>
                       <div className="mt-4 flex items-center justify-between rounded-xl bg-[#F5F7FA] px-3 py-3">
-                        <div><p className="text-xs font-bold text-[#17365D]">Suggested payment window</p><p className="text-[10px] text-[#718198]">15 minutes from checkout</p></div>
-                        <p className={`font-mono text-lg font-extrabold ${secondsLeft < 120 ? "text-amber-700" : "text-[#176B5A]"}`}>{String(Math.floor(secondsLeft/60)).padStart(2,"0")}:{String(secondsLeft%60).padStart(2,"0")}</p>
+                        <div><p className="text-xs font-bold text-[#17365D]">Suggested payment window</p><p className="text-[10px] text-[#718198]">5 minutes from checkout</p></div>
+                        <p className={`font-mono text-lg font-extrabold ${secondsLeft < 60 ? "text-amber-700" : "text-[#176B5A]"}`}>{String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:{String(secondsLeft % 60).padStart(2, "0")}</p>
                       </div>
                       {secondsLeft === 0 && <p className="mt-2 text-xs leading-5 text-amber-800">The suggested payment window has passed. This does not prove a payment failed. If you already paid, enter your UTR below and submit it for reconciliation. Do not pay again until you have checked with support.</p>}
                       {!showUtrForm ? (
@@ -557,12 +752,12 @@ export default function RequestPreview({ language = "en", onBack }) {
                       ) : (
                         <div className="mt-5 rounded-xl border border-[#DCE5ED] bg-[#F8FAFC] p-4">
                           <label className="mb-2 block text-sm font-bold text-[#17365D]">UPI transaction reference / UTR</label>
-                          <input value={utr} onChange={(e) => {setUtr(e.target.value.replace(/[^A-Za-z0-9-]/g, "").slice(0,35));setStatusCheck(null);}} placeholder="Enter UPI transaction ID" autoComplete="off" className="h-12 w-full rounded-xl border border-[#D6E0E9] bg-white px-4 text-sm outline-none focus:border-teal-500"/>
+                          <input value={utr} onChange={(e) => { setUtr(e.target.value.replace(/[^A-Za-z0-9-]/g, "").slice(0, 35)); setStatusCheck(null); }} placeholder="Enter UPI transaction ID" autoComplete="off" className="h-12 w-full rounded-xl border border-[#D6E0E9] bg-white px-4 text-sm outline-none focus:border-teal-500" />
                           <p className="mt-2 text-xs leading-5 text-[#6B7C8F]">Find the UTR in your UPI app's transaction details. Never enter your UPI PIN, OTP or banking password. A UTR or screenshot is not proof of payment; our team checks the actual merchant account credit.</p>
                           <button type="button" onClick={submitPaymentReference} disabled={busy || utr.trim().length < 8} className="mt-4 h-12 w-full rounded-xl bg-[#17365D] px-5 text-sm font-bold text-white disabled:opacity-50">{busy ? "Submitting..." : "Submit UTR for verification"}</button>
                         </div>
                       )}
-                      <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#E3EAF0] bg-white p-3 text-[11px] leading-5 text-[#62748A]"><ShieldCheck size={17} className="mt-0.5 shrink-0 text-[#16856F]"/><p>Manual verification: your payment is not confirmed when you submit the UTR. We will verify the credit before creating your PAN-finding request. Please do not make a second payment while the first is being checked.</p></div>
+                      <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#E3EAF0] bg-white p-3 text-[11px] leading-5 text-[#62748A]"><ShieldCheck size={17} className="mt-0.5 shrink-0 text-[#16856F]" /><p>Manual verification: your payment is not confirmed when you submit the UTR. We will verify the credit before creating your PAN-finding request. Please do not make a second payment while the first is being checked.</p></div>
                       <button type="button" onClick={() => { setStep("review"); setPaymentDetails(null); setUtr(""); setStatusCheck(null); }} className="mt-4 w-full text-xs font-semibold text-[#52667D]">Back to review</button>
                     </div>
                   </div>
@@ -570,7 +765,7 @@ export default function RequestPreview({ language = "en", onBack }) {
 
                 {step === "complete" && result && (
                   <div role="status" className="rounded-xl border border-[#DCE5ED] bg-white px-5 py-6 text-sm text-[#236A50]">
-                    <div className="mb-3 flex items-center gap-2"><Clock3 size={20}/><p className="font-bold">{statusCheck?.status === "verified" ? "Payment verified successfully" : statusCheck?.status === "rejected" ? "Payment could not be matched" : "Payment submitted · Awaiting verification"}</p></div>
+                    <div className="mb-3 flex items-center gap-2"><Clock3 size={20} /><p className="font-bold">{statusCheck?.status === "verified" ? "Payment verified successfully" : statusCheck?.status === "rejected" ? "Payment could not be matched" : "Payment submitted · Awaiting verification"}</p></div>
                     <p>{statusCheck?.message || result.message}</p>
                     <p className="mt-3">Payment reference: <strong>{paymentDetails?.paymentReference}</strong></p>
                     {statusCheck?.status === "verified" && statusCheck?.requestNumber ? (

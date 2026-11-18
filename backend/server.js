@@ -1,4 +1,6 @@
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -9,10 +11,12 @@ import { authenticateAdmin } from "./middleware/auth.middleware.js";
 import requestRoutes from "./routes/request.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js";
+import { expirePendingPayments } from "./models/payment.model.js";
 
 dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
+const BACKEND_DIR = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -62,6 +66,13 @@ app.use(cors({
   credentials: false,
   maxAge: 600,
 }));
+// Put the merchant QR image in backend/public and configure PANKHOJO_UPI_QR_IMAGE=/public/upi-qr.png.
+app.use("/public", express.static(path.join(BACKEND_DIR, "public"), {
+  dotfiles: "deny",
+  index: false,
+  maxAge: "1h",
+  setHeaders(response) { response.setHeader("Cross-Origin-Resource-Policy", "cross-origin"); },
+}));
 app.use(express.json({ limit: "12kb", strict: true }));
 app.use(express.urlencoded({ extended: false, limit: "12kb", parameterLimit: 30 }));
 
@@ -93,6 +104,13 @@ app.use((error, _req, res, _next) => {
   console.error("Server error:", error.message);
   return res.status(500).json({ success: false, message: "Internal server error." });
 });
+
+// Expire abandoned UPI checkouts independently of the customer's browser.
+const expirySweep = setInterval(() => {
+  expirePendingPayments().catch((error) => console.error("Payment expiry sweep failed:", error.message));
+}, 15000);
+expirySweep.unref?.();
+expirePendingPayments().catch((error) => console.error("Initial payment expiry sweep failed:", error.message));
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("PANKhojo Backend Started");

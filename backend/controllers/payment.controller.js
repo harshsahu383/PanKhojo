@@ -25,12 +25,17 @@ export const createManualPayment = async (req, res) => {
     if (!Number.isSafeInteger(amount) || amount < 100 || !process.env.PANKHOJO_UPI_ID || !process.env.PANKHOJO_UPI_NAME || !process.env.PANKHOJO_UPI_QR_IMAGE) {
       return res.status(503).json({ success: false, message: "Manual UPI payment is not configured yet. Please contact PANKhojo support." });
     }
-    if (!process.env.AADHAAR_ENCRYPTION_KEY) return res.status(503).json({ success: false, message: "Secure data storage is not configured." });
-    const { aadhaarNumber, consentDetails, ...data } = validation.data;
-    const customerPayload = { ...data, aadhaarEncrypted: encryptAadhaar(aadhaarNumber), aadhaarLast4: aadhaarNumber.slice(-4), privacyPolicyVersion: consentDetails.privacyVersion, termsVersion: consentDetails.termsVersion };
+    // At checkout creation, persist only the three lead contact fields.
+    // The remaining request details are sent securely only when the customer submits the UTR.
+    const customerPayload = {
+      fullName: validation.data.fullName,
+      email: validation.data.email,
+      phone: validation.data.phone
+    };
     const paymentReference = `PKP-${Date.now()}-${randomUUID().slice(0, 8).toUpperCase()}`;
     await insertManualPayment({ paymentReference, amount, customerPayload });
-    return res.status(201).json({ success: true, paymentReference, amount, currency: "INR", upiId: process.env.PANKHOJO_UPI_ID, payeeName: process.env.PANKHOJO_UPI_NAME, qrImage: process.env.PANKHOJO_UPI_QR_IMAGE });
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    return res.status(201).json({ success: true, paymentReference, amount, currency: "INR", upiId: process.env.PANKHOJO_UPI_ID, payeeName: process.env.PANKHOJO_UPI_NAME, qrImage: process.env.PANKHOJO_UPI_QR_IMAGE, expiresAt });
   } catch (error) {
     console.error("Create manual payment error:", error.message);
     return res.status(500).json({ success: false, message: "Unable to prepare payment. Please try again." });
@@ -38,15 +43,41 @@ export const createManualPayment = async (req, res) => {
 };
 
 export const submitManualPayment = async (req, res) => {
-  const schema = z.object({ paymentReference: z.string().min(8).max(80), utr: z.string().trim().regex(/^[A-Za-z0-9-]{8,35}$/) });
+  const schema = z.object({
+    paymentReference: z.string().trim().min(8).max(80),
+    utr: z.string().trim().regex(/^[A-Za-z0-9-]{8,35}$/),
+    paymentConfirmed: z.literal(true),
+    requestData: customerSchema
+  }).strict();
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, message: "Enter a valid UPI transaction reference (UTR)." });
   try {
     const order = await getPaymentOrder(parsed.data.paymentReference);
     if (!order) return res.status(404).json({ success: false, message: "Payment reference not found." });
-    const updated = await submitCustomerUtr(parsed.data);
-    if (!updated) return res.status(409).json({ success: false, message: "Payment details have already been submitted or this reference is no longer active." });
-    return res.status(200).json({ success: true, message: "Payment details submitted for manual verification. Your request will be created only after the payment is confirmed." });
+    if (!process.env.AADHAAR_ENCRYPTION_KEY) {
+      return res.status(503).json({ success: false, message: "Secure request storage is not configured. Please contact support." });
+    }
+    const { aadhaarNumber, consentDetails, ...requestFields } = parsed.data.requestData;
+    const customerPayload = {
+      ...requestFields,
+      aadhaarEncrypted: encryptAadhaar(aadhaarNumber),
+      aadhaarLast4: aadhaarNumber.slice(-4),
+      privacyPolicyVersion: consentDetails.privacyVersion,
+      termsVersion: consentDetails.termsVersion
+    };
+    const submission = await submitCustomerUtr({
+      paymentReference: parsed.data.paymentReference,
+      utr: parsed.data.utr,
+      customerPayload
+    });
+    if (!submission.updated) return res.status(409).json({ success: false, message: submission.reason === "not_found" ? "Payment reference not found." : submission.reason === "expired" ? "This checkout expired after five minutes and has been cancelled. If you already paid, do not pay again; contact support with your payment reference." : "Payment details have already been submitted or this reference is no longer active." });
+    return res.status(200).json({
+      success: true,
+      message: "Your request has been created and your UTR is awaiting manual payment verification.",
+      requestNumber: submission.requestNumber,
+      paymentReference: parsed.data.paymentReference,
+      verificationTime: process.env.PANKHOJO_PAYMENT_VERIFICATION_TIME || "Within 24 hours."
+    });
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") return res.status(409).json({ success: false, message: "This UPI transaction reference has already been submitted." });
     console.error("Submit manual payment error:", error.message);
@@ -69,7 +100,7 @@ export const decideManualPayment = async (req, res) => {
     if (result.request) {
       const request = result.request;
       const emailResult = await sendPaymentReceiptEmail({ email: request.email, fullName: request.fullName, requestNumber: request.requestNumber, paymentId: existingOrder.customer_utr, orderId: req.params.reference, amount: existingOrder.amount, currency: existingOrder.currency, paidAt: new Date() }).catch((error) => { console.error("Payment receipt email error:", error.message); return { sent: false }; });
-      return res.json({ success: true, message: "Payment verified and request created.", request, emailSent: emailResult.sent });
+      return res.json({ success: true, message: "Payment verified. The request is now ready for processing.", request, emailSent: emailResult.sent });
     }
     return res.json({ success: true, message: "Payment marked as rejected." });
   } catch (error) { return res.status(409).json({ success: false, message: error.message || "Unable to update payment." }); }
@@ -82,9 +113,10 @@ export const trackCustomerPayment = async (req, res) => {
     const payment = await getPublicPaymentTracking(parsed.data);
     if (!payment) return res.status(404).json({ success: false, message: "We could not find a payment matching those details. Check your reference and registered email." });
     const messages = {
-      created: "We have created your payment reference, but have not yet received your UTR. If you have already paid, submit your UTR from the payment page or contact support.",
-      submitted: "Your UTR has been submitted. PANKhojo is checking the payment against the merchant bank account.",
-      verified: "Payment verified successfully. Your PAN-finding request has been created.",
+      created: "We have created your payment reference, but have not yet received your UTR. The checkout expires after five minutes.",
+      expired: "This checkout expired after five minutes. If you already transferred money, do not pay again; contact support with your payment reference and UTR if available.",
+      submitted: "Your request has been created. Your UTR is being checked against the merchant bank account.",
+      verified: "Payment verified successfully. Your PAN-finding request is ready for processing.",
       rejected: "We could not match the submitted payment. Please read the update below and contact support before paying again.",
       failed: "The payment could not be completed. Please contact support if money was debited."
     };
@@ -101,7 +133,7 @@ export const checkCustomerPaymentStatus = async (req, res) => {
   try {
     const payment = await getCustomerPaymentStatus(parsed.data);
     if (!payment) return res.status(404).json({ success: false, message: "We could not find a matching submission. Check the payment reference and UTR." });
-    const statusMessages = { submitted: "Your payment details are awaiting manual bank verification.", verified: "Payment verified successfully. Your request has been created.", rejected: "The submitted payment could not be matched. Please contact support before making another payment." };
+    const statusMessages = { submitted: "Your request has been created. Your payment details are awaiting manual bank verification.", verified: "Payment verified successfully. Your request is ready for processing.", rejected: "The submitted payment could not be matched. Please contact support before making another payment.", expired: "This checkout expired after five minutes and was cancelled. If you already transferred money, do not pay again; contact support." };
     return res.json({ success: true, status: payment.status, message: statusMessages[payment.status] || "Payment status is being updated.", requestCreated: Boolean(payment.request_id), requestId: payment.request_id || null, requestNumber: payment.request_number || null, verifiedAt: payment.verified_at || null });
   } catch (error) {
     console.error("Customer payment status error:", error.message);
