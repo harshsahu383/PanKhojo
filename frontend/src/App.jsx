@@ -3,6 +3,7 @@ import { useState } from "react";
 import RequestPreview from "./RequestPreview.jsx";
 import TrackRequest from "./TrackRequest.jsx";
 import TrackPayment from "./TrackPayment.jsx";
+// import CashfreePaymentReturn from "./CashfreePaymentReturn.jsx";
 import {
   Fingerprint,
   Menu,
@@ -31,15 +32,15 @@ const translations = {
     nav: ["Home", "How it works", "Why PANKhojo", "FAQs"],
     contact: "Contact us",
     eyebrow: "INDEPENDENT PAN FINDER SERVICE",
-    title: "Forgot your PAN number? Let's make recovery simpler.",
+    title: "Find Your Existing PAN Using Aadhaar Details.",
     subtitle:
-      "A dedicated PAN-finding service for people who have lost or forgotten their existing PAN number.",
-    primary: "Discover how it works",
+      "Forgot your PAN number? Get assistance with finding your existing PAN using Aadhaar details through a secure, consent-based process.",
+    primary: "Find My Existing PAN",
     secondary: "Why PANKhojo",
     existing: "For existing PAN holders only",
-    cardTitle: "Lost your PAN number?",
+    cardTitle: "Find your existing PAN",
     cardDesc:
-      "We help find your existing PAN number through a guided request process.",
+      "Get guided assistance to locate your existing PAN using your Aadhaar details, subject to an authorized verification process.",
     status: "PAN finding service",
     statusDesc:
       "A guided process to find your existing PAN number.",
@@ -153,15 +154,15 @@ const translations = {
     nav: ["होम", "कैसे काम करता है", "हमें क्यों चुनें", "सवाल-जवाब"],
     contact: "संपर्क करें",
     eyebrow: "स्वतंत्र PAN खोज सेवा",
-    title: "PAN नंबर भूल गए? आइए, रिकवरी आसान बनाएं।",
+    title: "आधार विवरण से अपना मौजूदा PAN खोजने में सहायता पाएं।",
     subtitle:
-      "उन लोगों के लिए PAN खोज सेवा जिन्होंने अपना मौजूदा PAN नंबर खो दिया है या भूल गए हैं।",
+      "अपना PAN नंबर भूल गए हैं? सुरक्षित और सहमति-आधारित प्रक्रिया के माध्यम से मौजूदा PAN खोजने में सहायता पाएं।",
     primary: "प्रक्रिया जानें",
     secondary: "PANKhojo क्यों?",
     existing: "केवल मौजूदा PAN धारकों के लिए",
-    cardTitle: "PAN नंबर खो गया?",
+    cardTitle: "अपना मौजूदा PAN खोजें",
     cardDesc:
-      "अपने मौजूदा PAN नंबर को खोजने के लिए जरूरी जानकारी और प्रक्रिया प्राप्त करें।",
+      "अधिकृत सत्यापन प्रक्रिया के अधीन, आधार विवरण के माध्यम से अपना मौजूदा PAN खोजने में सहायता पाएं।",
     status: "PAN खोज सेवा",
     statusDesc:
       "जिन लोगों का मौजूदा PAN नंबर खो गया है या याद नहीं है, उनके लिए सरल PAN खोज प्रक्रिया।",
@@ -320,8 +321,13 @@ function App() {
   const [showRequestPreview, setShowRequestPreview] = useState(false);
   const [showTracking, setShowTracking] = useState(new URLSearchParams(window.location.search).get("track") === "1");
   const [showPaymentTracking, setShowPaymentTracking] = useState(new URLSearchParams(window.location.search).get("payment") === "1");
+  const cashfreeOrderId = new URLSearchParams(window.location.search).get("cashfree_order_id");
 
   const t = translations[language];
+
+  if (cashfreeOrderId) {
+    return <CashfreePaymentReturn orderId={cashfreeOrderId} onBack={() => { window.history.replaceState({}, "", window.location.pathname); window.location.reload(); }} />;
+  }
 
   if (showRequestPreview) {
     return <RequestPreview language={language} onBack={() => setShowRequestPreview(false)} />;
@@ -873,6 +879,7 @@ function App() {
                 <ArrowUpRight size={14} />
               </a>
               <div className="mt-4 flex flex-col gap-3 text-sm text-slate-400">
+                <a href="/how-to-find-existing-pan-number.html" className="transition hover:text-white">How to find your existing PAN</a>
                 <a href="/refund-policy.html" className="transition hover:text-white">Cancellation & Refund Policy</a>
                 <a href="/terms.html" className="transition hover:text-white">Terms & Conditions</a>
               </div>
