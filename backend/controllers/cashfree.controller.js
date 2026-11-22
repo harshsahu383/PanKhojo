@@ -1,8 +1,8 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { encryptAadhaar } from '../utils/aadhaar.crypto.js';
-import { sendPaymentReceiptEmail } from '../services/email.service.js';
-import { insertCashfreeOrder, getCashfreeOrder, finalizeCashfreePayment, markCashfreePaymentFailed, markCashfreePaymentPending, getCashfreePublicStatus } from '../models/payment.model.js';
+import { sendPaymentReceiptEmail, sendAdminNewRequestEmail } from '../services/email.service.js';
+import { insertCashfreeOrder, getCashfreeOrder, finalizeCashfreePayment, markCashfreePaymentFailed, markCashfreePaymentPending, markCashfreePaymentExpired, getCashfreePublicStatus } from '../models/payment.model.js';
 
 const apiVersion = process.env.CASHFREE_API_VERSION || '2023-08-01';
 const cashfreeBase = () => process.env.CASHFREE_ENV === 'production' ? 'https://api.cashfree.com/pg' : 'https://sandbox.cashfree.com/pg';
@@ -64,7 +64,7 @@ export const createCashfreeOrder = async (req, res) => {
       order_id: paymentReference, order_amount: amount, order_currency: 'INR',
       customer_details: { customer_id: `pk_${customer.phone}`, customer_name: customer.fullName, customer_email: customer.email, customer_phone: customer.phone },
       order_meta: orderMeta, order_note: 'PANKhojo existing PAN finding service',
-      order_expiry_time: new Date(Date.now() + 20 * 60 * 1000).toISOString()
+      order_expiry_time: new Date(Date.now() + CHECKOUT_EXPIRY_MINUTES * 60 * 1000).toISOString()
     };
     const cfOrder = await cashfreeFetch('/orders', { method: 'POST', body: JSON.stringify(orderBody), idempotencyKey: randomUUID() });
     if (!cfOrder.payment_session_id) throw new Error('Cashfree did not return a payment session.');
@@ -75,6 +75,10 @@ export const createCashfreeOrder = async (req, res) => {
     return res.status(error.status && error.status < 500 ? error.status : 502).json({ success: false, message: 'Unable to create a secure Cashfree checkout. Please try again.' });
   }
 };
+
+// Cashfree order expiry prevents new attempts after five minutes. A pending attempt is
+// never failed solely because this local timer elapsed; we require Cashfree's final state.
+const CHECKOUT_EXPIRY_MINUTES = 15;
 
 // Browser polling is only a fallback when a webhook has not updated the order.
 // Keep this in-process cooldown so one customer refresh cannot call Cashfree repeatedly.
@@ -122,9 +126,15 @@ async function reconcileCashfreeOrder(paymentReference) {
     return { updated: false, orderStatus: cfOrder.order_status, paymentStatus: latestAttempt.payment_status };
   }
 
+  // A pending/late-authorisation attempt must remain pending even after the order's
+  // five-minute window. Cashfree can still report a delayed SUCCESS for an attempt
+  // started before expiry. Expire only when Cashfree confirms the order is terminal
+  // and there is no in-flight payment attempt.
   if (['EXPIRED', 'TERMINATED'].includes(cfOrder.order_status)) {
-    await markCashfreePaymentFailed({ paymentReference, paymentStatus: cfOrder.order_status });
-    return { updated: false, orderStatus: cfOrder.order_status, paymentStatus: cfOrder.order_status };
+    if (!latestAttempt || ['NOT_ATTEMPTED'].includes(latestAttempt.payment_status)) {
+      await markCashfreePaymentExpired({ paymentReference, paymentStatus: cfOrder.order_status });
+      return { updated: false, orderStatus: cfOrder.order_status, paymentStatus: 'EXPIRED' };
+    }
   }
 
   return { updated: false, orderStatus: cfOrder.order_status, paymentStatus: latestAttempt?.payment_status || 'PENDING' };
@@ -141,7 +151,7 @@ export const getCashfreePaymentStatus = async (req, res) => {
 
     // Webhook is the primary source of truth. Only reconcile an order still marked
     // "created" after a short grace period, and no more than once per cooldown.
-    if (status.status === 'created' && credentialsReady()) {
+    if (['created', 'failed', 'expired'].includes(status.status) && credentialsReady()) {
       const createdAt = new Date(status.created_at).getTime();
       const oldEnoughForFallback = Number.isFinite(createdAt) && Date.now() - createdAt >= WEBHOOK_GRACE_PERIOD_MS;
       const lastCheckedAt = lastFallbackCheckAt.get(req.params.reference) || 0;
@@ -162,6 +172,12 @@ export const getCashfreePaymentStatus = async (req, res) => {
               currency: reconciled.currency,
               paidAt: new Date()
             }).catch((error) => console.error('Cashfree receipt email failed:', error.message));
+            await sendAdminNewRequestEmail({
+              fullName: reconciled.request.full_name, email: reconciled.request.email,
+              phone: reconciled.request.phone || '', requestNumber: reconciled.request.request_number,
+              paymentReference: req.params.reference, paymentId: reconciled.paymentId || '',
+              amount: reconciled.amount, currency: reconciled.currency, createdAt: new Date()
+            }).catch((error) => console.error('Admin new-request email failed:', error.message));
           }
         } catch (fallbackError) {
           // Do not fail the customer status page just because the fallback API check failed.
@@ -172,7 +188,6 @@ export const getCashfreePaymentStatus = async (req, res) => {
 
     status = await getCashfreePublicStatus(req.params.reference, parsed.data.email);
     if (!status) return res.status(404).json({ success: false, message: 'Payment reference and registered email do not match.' });
-    if (['paid', 'failed'].includes(status.status)) lastFallbackCheckAt.delete(req.params.reference);
 
     return res.json({
       success: true,
@@ -219,7 +234,12 @@ export const cashfreeWebhook = async (req, res) => {
       const result = await finalizeCashfreePayment({ paymentReference, paymentId: String(payment.cf_payment_id || ''), paymentStatus: 'SUCCESS', paidAmount: payment.payment_amount, paidCurrency: payment.payment_currency || 'INR', eventId: String(event?.event_id || event?.type || '') });
       if (result.updated && result.request) {
         const emailResult = await sendPaymentReceiptEmail({ email: result.request.email, fullName: result.request.full_name, requestNumber: result.request.request_number, paymentId: String(payment.cf_payment_id || ''), orderId: paymentReference, amount: result.amount, currency: result.currency, paidAt: new Date() }).catch((error) => { console.error('Cashfree receipt email failed:', error.message); return { sent: false }; });
-        console.info('Cashfree payment confirmed; request created. Receipt email sent:', Boolean(emailResult.sent));
+        const adminEmailResult = await sendAdminNewRequestEmail({
+          fullName: result.request.full_name, email: result.request.email, phone: result.request.phone || '',
+          requestNumber: result.request.request_number, paymentReference, paymentId: String(payment.cf_payment_id || ''),
+          amount: result.amount, currency: result.currency, createdAt: new Date()
+        }).catch((error) => { console.error('Admin new-request email failed:', error.message); return { sent: false }; });
+        console.info('Cashfree payment confirmed; request created. Receipt email sent:', Boolean(emailResult.sent), 'Admin notification sent:', Boolean(adminEmailResult.sent));
       }
     } else if (['FAILED', 'USER_DROPPED'].includes(payment.payment_status)) {
       await markCashfreePaymentFailed({

@@ -223,7 +223,7 @@ const legalDocuments = {
       ["4. Data security", "We use reasonable technical and organisational safeguards to protect information. However, no online transmission or storage system can be guaranteed to be completely secure."],
       ["5. Retention and deletion", "Information is retained only for as long as reasonably necessary for the service, support, dispute resolution and legal obligations. You may request deletion, subject to information that must lawfully be retained."],
       ["6. Your rights", "You may contact us to request access, correction, erasure or withdrawal of consent, where applicable. Withdrawal may affect our ability to continue processing your request."],
-      ["7. Contact and complaints", "For privacy questions or complaints, contact: [PRIVACY EMAIL]. Grievance contact: [NAME / ROLE / EMAIL / POSTAL ADDRESS]."]
+      ["7. Contact and complaints", "For privacy questions or complaints, contact: harshsahu1917@gmail.com. Grievance contact: Harsh Sahu / Admin / harshsahu1917@gmail.com / Postal code 305001."]
     ],
     hi: [
       ["1. हम कौन-सी जानकारी लेते हैं", "हम आपका नाम, ईमेल पता, मोबाइल नंबर और जहां वैध आधार तथा अधिकृत प्रक्रिया उपलब्ध हो, पात्र अनुरोध के लिए आपका 12 अंकों का Aadhaar नंबर लेते हैं। हम Aadhaar फोटो या दस्तावेज़ अपलोड करने के लिए नहीं कहते।"],
@@ -232,7 +232,7 @@ const legalDocuments = {
       ["4. जानकारी की सुरक्षा", "हम जानकारी की सुरक्षा के लिए उचित तकनीकी और संगठनात्मक उपाय अपनाते हैं। हालांकि, इंटरनेट पर किसी भी प्रणाली की पूर्ण सुरक्षा की गारंटी नहीं दी जा सकती।"],
       ["5. जानकारी रखना और हटाना", "जानकारी केवल सेवा, सहायता, विवाद समाधान और कानूनी आवश्यकताओं के लिए आवश्यक अवधि तक रखी जाती है। कानूनन रखी जाने वाली जानकारी को छोड़कर आप जानकारी हटाने का अनुरोध कर सकते हैं।"],
       ["6. आपके अधिकार", "जहां लागू हो, आप जानकारी देखने, सुधारने, हटाने या सहमति वापस लेने के लिए हमसे संपर्क कर सकते हैं।"],
-      ["7. संपर्क और शिकायत", "गोपनीयता संबंधी प्रश्नों या शिकायतों के लिए संपर्क करें: [PRIVACY EMAIL]. शिकायत संपर्क: [NAME / ROLE / EMAIL / POSTAL ADDRESS]."]
+      ["7. संपर्क और शिकायत", "गोपनीयता संबंधी प्रश्नों या शिकायतों के लिए संपर्क करें: harshsahu1917@gmail.com. शिकायत संपर्क: Harsh Sahu / Admin / harshsahu1917@gmail.com / पिन कोड 305001."]
     ]
   },
   terms: {
@@ -246,9 +246,9 @@ const legalDocuments = {
       ["7. Fees, cancellation and refunds", "The fee is displayed before payment. If you cancel before PAN-finding work begins, you are eligible for a full refund. After work begins, refunds are reviewed case by case and are not automatic. If PANKhojo cancels because the request cannot be processed, a full refund is due. Duplicate payments are refunded. Approved refunds are initiated within 5–7 business days; banks or payment providers may take longer. No refund is generally available after successful secure delivery, except where required by law or a verified service failure. See the full Cancellation & Refund Policy at /refund-policy.html."],
       ["8. Suspension or refusal", "We may pause, refuse or cancel a request where information is incomplete, authority is unclear, misuse is suspected or processing may breach applicable law."],
       ["9. Liability", "Nothing in these terms excludes liability where exclusion is prohibited by law, including liability for fraud or wilful misconduct, or limits rights that cannot legally be waived. To the extent permitted by law, we are not responsible for delays caused by inaccurate customer information or unavailable external systems."],
-      ["10. Complaints and disputes", "Please contact [SUPPORT EMAIL] so we can attempt to resolve your concern. Nothing in these terms prevents you from exercising rights available under applicable Indian law or approaching a competent authority or forum."],
+      ["10. Complaints and disputes", "Please contact harshsahu1917@gmail.com so we can attempt to resolve your concern. Nothing in these terms prevents you from exercising rights available under applicable Indian law or approaching a competent authority or forum."],
       ["11. Governing law", "These terms are governed by the laws of India, subject to mandatory consumer protections and the jurisdiction of competent courts."],
-      ["12. Business contact", "Legal business name: [LEGAL BUSINESS NAME]. Address: [BUSINESS ADDRESS]. Support email: [SUPPORT EMAIL]. Grievance contact: [NAME / ROLE / EMAIL]."]
+      ["12. Business contact", "Legal business name: PANKhojo. Postal code: 305001. Support email: harshsahu1917@gmail.com. Phone: 7725943124. Grievance contact: Harsh Sahu / Admin / harshsahu1917@gmail.com."]
     ],
     hi: [
       ["1. PANKhojo के बारे में", "PANKhojo एक स्वतंत्र निजी PAN खोज सेवा है। यह सरकारी वेबसाइट, सरकारी विभाग या PAN जारी करने वाली संस्था नहीं है।"],
@@ -260,9 +260,9 @@ const legalDocuments = {
       ["7. शुल्क, रद्दीकरण और रिफंड", "शुल्क भुगतान से पहले दिखाया जाएगा। PAN खोजने का काम शुरू होने से पहले अनुरोध रद्द करने पर पूरा रिफंड मिलेगा। काम शुरू होने के बाद रिफंड की समीक्षा मामले के अनुसार होगी और अपने-आप नहीं मिलेगा। यदि PANKhojo अनुरोध प्रोसेस नहीं कर सकता और उसे रद्द करता है, तो पूरा रिफंड मिलेगा। डुप्लीकेट भुगतान वापस किया जाएगा। स्वीकृत रिफंड 5–7 कार्यदिवसों में शुरू किया जाएगा; बैंक या पेमेंट सेवा को अधिक समय लग सकता है। सफलतापूर्वक जानकारी सुरक्षित रूप से भेजे जाने के बाद सामान्यतः रिफंड नहीं मिलेगा, सिवाय जहां कानून या सत्यापित सेवा विफलता के कारण आवश्यक हो। पूरी नीति /refund-policy.html पर पढ़ें।"],
       ["8. अनुरोध रोकना या अस्वीकार करना", "अधूरी जानकारी, अधिकार स्पष्ट न होने, दुरुपयोग की आशंका या कानून का उल्लंघन होने की स्थिति में हम अनुरोध रोक या अस्वीकार कर सकते हैं।"],
       ["9. जिम्मेदारी", "इन शर्तों से कानून द्वारा सुरक्षित अधिकार समाप्त नहीं होते। धोखाधड़ी या जानबूझकर गलत आचरण जैसी जिम्मेदारियों को कानून के विरुद्ध सीमित नहीं किया जाता।"],
-      ["10. शिकायत और विवाद", "अपनी शिकायत के समाधान के लिए [SUPPORT EMAIL] पर संपर्क करें। ये शर्तें भारतीय कानून के अंतर्गत आपके अधिकारों को सीमित नहीं करतीं।"],
+      ["10. शिकायत और विवाद", "अपनी शिकायत के समाधान के लिए harshsahu1917@gmail.com पर संपर्क करें। ये शर्तें भारतीय कानून के अंतर्गत आपके अधिकारों को सीमित नहीं करतीं।"],
       ["11. लागू कानून", "ये शर्तें भारत के कानूनों के अधीन होंगी और अनिवार्य उपभोक्ता अधिकार सुरक्षित रहेंगे।"],
-      ["12. व्यवसाय संपर्क", "कानूनी व्यवसाय नाम: [LEGAL BUSINESS NAME]. पता: [BUSINESS ADDRESS]. सपोर्ट ईमेल: [SUPPORT EMAIL]. शिकायत संपर्क: [NAME / ROLE / EMAIL]."]
+      ["12. व्यवसाय संपर्क", "कानूनी व्यवसाय नाम: PANKhojo. पिन कोड: 305001. सपोर्ट ईमेल: harshsahu1917@gmail.com. फोन: 7725943124. शिकायत संपर्क: Harsh Sahu / Admin / harshsahu1917@gmail.com."]
     ]
   }
 };
@@ -791,7 +791,7 @@ export default function RequestPreview({ language = "en", onBack, initialValues 
                         </button>
                       </span>
                     </label>
-                    <p className="pl-7 text-xs leading-5 text-slate-500">Cancellation & refund: <a href="/refund-policy.html" target="_blank" rel="noreferrer" className="font-bold text-[#087F78] underline">Read the full policy</a></p>
+                    <p className="pl-7 text-xs leading-5 text-slate-500">Cancellation & refund: <a href="/refund-policy" target="_blank" rel="noreferrer" className="font-bold text-[#087F78] underline">Read the full policy</a></p>
                   </div>
 
                 </>}

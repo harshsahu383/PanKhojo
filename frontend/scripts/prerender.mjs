@@ -13,44 +13,44 @@ const site = "https://pankhojo.in";
 const routes = [
   {
     path: "/",
-    title: "Find Your Forgotten PAN Number Using Aadhaar | PANKhojo",
-    description: "Forgot your PAN? Request help locating your existing PAN using your Aadhaar number. PANKhojo is a private service; no Aadhaar photo or document is needed.",
+    title: "Forgot Your PAN Number? Find Your Existing PAN | PANKhojo",
+    description: "Forgot your PAN number? Learn how to locate your existing PAN and explore PANKhojo’s independent private assistance process. Aadhaar number only where required; no Aadhaar photo or document.",
     type: "home",
   },
   {
     path: "/how-pankhojo-works",
-    title: "How PANKhojo Works | Existing PAN Finding Assistance",
-    description: "Understand PANKhojo's independent private process for people trying to locate their own existing PAN number, including eligibility, review and updates.",
+    title: "How PANKhojo Works | PAN Finding Process",
+    description: "See how PANKhojo’s independent private PAN-finding assistance works, who it is for, what information may be requested and what to expect after submitting a request.",
   },
   {
     path: "/pan-number-guide",
-    title: "PAN Number Knowledge Centre | PANKhojo",
-    description: "Learn what to do if you have forgotten your PAN number, how to use official Income Tax Department options and how to avoid unsafe requests.",
+    title: "Forgot Your PAN Number? Official Ways to Find It | PANKhojo",
+    description: "Forgot or misplaced your PAN? Learn the official ways to check your existing PAN, understand safe recovery options and avoid applying for a duplicate PAN.",
   },
   {
     path: "/about-us",
-    title: "About PANKhojo | Independent Existing PAN Assistance",
-    description: "Learn about PANKhojo, an independent private assistance service for people seeking to locate their own existing PAN number.",
+    title: "About PANKhojo | Independent PAN Finding Assistance",
+    description: "Learn about PANKhojo, an independent private service helping people understand options for locating their own existing PAN number.",
   },
   {
     path: "/contact-us",
-    title: "Contact PANKhojo | Customer Support",
-    description: "Contact PANKhojo for questions about the service, requests, payments, cancellations or privacy.",
+    title: "Contact PANKhojo | PAN Request and Payment Support",
+    description: "Contact PANKhojo for help with an existing PAN-finding request, payment, delivery, cancellation or privacy question.",
   },
   {
     path: "/privacy-policy",
     title: "Privacy Policy | PANKhojo",
-    description: "Read how PANKhojo approaches personal information, request handling, privacy, security and customer choices.",
+    description: "Read PANKhojo’s privacy information about personal data, Aadhaar number handling where required, request processing, security and customer choices.",
   },
   {
     path: "/terms-and-conditions",
     title: "Terms and Conditions | PANKhojo",
-    description: "Read the terms governing PANKhojo's independent private existing PAN assistance service.",
+    description: "Review the terms, eligibility, limitations and conditions for using PANKhojo’s independent private existing PAN-finding assistance service.",
   },
   {
     path: "/refund-policy",
-    title: "Refund and Cancellation Policy | PANKhojo",
-    description: "Read PANKhojo's refund, cancellation and payment issue handling information before submitting a request.",
+    title: "Cancellation and Refund Policy | PANKhojo",
+    description: "Understand PANKhojo’s cancellation, payment issue and refund process before submitting an existing PAN-finding request.",
   },
 ];
 
@@ -71,23 +71,42 @@ function makeHead(html, route) {
   html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
   html = setMeta(html, "name=[\"\']description[\"\']", `<meta name="description" content="${description}">`);
   html = setMeta(html, "name=[\"\']robots[\"\']", '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">');
-  html = html.replace(/<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${url}">`);
+  const canonicalTag = `<link rel="canonical" href="${url}">`;
+  if (/<link\s+rel=["']canonical["'][^>]*>/i.test(html)) {
+    html = html.replace(/<link\s+rel=["']canonical["'][^>]*>/i, canonicalTag);
+  } else {
+    html = html.replace("</head>", `  ${canonicalTag}\n</head>`);
+  }
   html = setMeta(html, "property=[\"\']og:title[\"\']", `<meta property="og:title" content="${title}">`);
   html = setMeta(html, "property=[\"\']og:description[\"\']", `<meta property="og:description" content="${description}">`);
   html = setMeta(html, "property=[\"\']og:url[\"\']", `<meta property="og:url" content="${url}">`);
   html = setMeta(html, "property=[\"\']og:type[\"\']", '<meta property="og:type" content="website">');
   html = setMeta(html, "name=[\"\']twitter:title[\"\']", `<meta name="twitter:title" content="${title}">`);
   html = setMeta(html, "name=[\"\']twitter:description[\"\']", `<meta name="twitter:description" content="${description}">`);
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "@id": `${url}#webpage`,
-    url,
-    name: route.title,
-    description: route.description,
-    isPartOf: { "@id": `${site}/#website` },
-    inLanguage: "en-IN",
-  };
+  const schemaGraph = [
+    {
+      "@type": "WebPage",
+      "@id": `${url}#webpage`,
+      url,
+      name: route.title,
+      description: route.description,
+      isPartOf: { "@id": `${site}/#website` },
+      inLanguage: "en-IN",
+      ...(route.path !== "/" ? { breadcrumb: { "@id": `${url}#breadcrumb` } } : {}),
+    },
+  ];
+  if (route.path !== "/") {
+    const pageName = route.title.split("|")[0].trim();
+    schemaGraph.push({
+      "@type": "BreadcrumbList",
+      "@id": `${url}#breadcrumb`,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${site}/` },
+        { "@type": "ListItem", position: 2, name: pageName, item: url },
+      ],
+    });
+  }
+  const schema = { "@context": "https://schema.org", "@graph": schemaGraph };
   const schemaTag = `<script type="application/ld+json" data-page-schema>${JSON.stringify(schema)}</script>`;
   html = html.replace(/<script[^>]*data-page-schema[^>]*>[\s\S]*?<\/script>/i, "");
   html = html.replace("</head>", `  ${schemaTag}\n</head>`);

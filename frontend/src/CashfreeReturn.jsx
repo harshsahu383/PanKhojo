@@ -52,7 +52,7 @@ export default function CashfreeReturn() {
     check({ quiet: true });
     const timer = window.setInterval(() => {
       pollCount += 1;
-      if (pollCount >= 12) {
+      if (pollCount >= 84) {
         window.clearInterval(timer);
         setAutoChecking(false);
         return;
@@ -64,7 +64,7 @@ export default function CashfreeReturn() {
 
   const paid = payment?.status === 'paid';
   const failed = ['failed', 'expired'].includes(payment?.status);
-  const pending = payment?.status === 'created' || ['PENDING', 'NOT_ATTEMPTED', 'INCOMPLETE'].includes(payment?.gatewayPaymentStatus);
+  const pending = !paid && !failed && (payment?.status === 'created' || ['PENDING', 'NOT_ATTEMPTED', 'INCOMPLETE'].includes(payment?.gatewayPaymentStatus));
   const stillChecking = !paid && autoChecking;
 
   return (
@@ -76,15 +76,15 @@ export default function CashfreeReturn() {
           </span>
           <p className="mt-5 text-[10px] font-extrabold uppercase tracking-[.2em] text-[#159B83]">PANKHOJO PAYMENT CONFIRMATION</p>
           <h1 className="mt-2 text-2xl font-extrabold text-[#17365D] sm:text-3xl">
-            {paid ? 'We have received your request!' : failed ? 'Payment was not completed' : pending ? 'Your payment is pending' : 'Confirming your payment'}
+            {paid ? 'We have received your request!' : payment?.status === 'expired' ? 'Checkout expired' : failed ? 'Payment was not completed' : pending ? 'Your payment is pending' : 'Confirming your payment'}
           </h1>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#69798D]">
             {paid
               ? 'Your payment has been verified by Cashfree and your PAN-finding request has been created.'
               : failed
-                ? 'Cashfree has not confirmed a successful payment. If your account was debited, please contact support before paying again.'
+                ? (payment?.status === 'expired' ? 'The five-minute checkout window has ended and Cashfree has confirmed that the order expired. If money was debited, contact support before trying again.' : 'Cashfree has reported this payment attempt as unsuccessful. If your account was debited, please contact support before paying again.')
                 : pending
-                  ? 'We have received your payment attempt. Cashfree is still processing the result. Keep this page open; we will refresh the status automatically for up to one minute.'
+                  ? 'We have received your payment attempt. Cashfree is still processing the result. Keep this page open; we will check for up to seven minutes while the five-minute checkout expiry and any in-flight bank confirmation are resolved.'
                   : 'We are checking your payment directly with Cashfree. Please keep this page open for a moment.'}
           </p>
         </div>
@@ -96,7 +96,7 @@ export default function CashfreeReturn() {
               <div><p className="text-xs text-[#718198]">PANKhojo payment reference</p><p className="mt-1 break-all text-sm font-extrabold text-[#17365D]">{payment?.paymentReference || orderId || '—'}</p></div>
               <div><p className="text-xs text-[#718198]">Cashfree transaction ID</p><p className="mt-1 break-all text-sm font-extrabold text-[#17365D]">{payment?.transactionId || (paid ? 'Updating' : 'Available after confirmation')}</p></div>
               {payment?.amount != null && <div><p className="text-xs text-[#718198]">Amount paid</p><p className="mt-1 text-sm font-extrabold text-[#17365D]">₹{(Number(payment.amount) / 100).toFixed(2)}</p></div>}
-              <div><p className="text-xs text-[#718198]">Current payment status</p><p className={`mt-1 text-sm font-extrabold ${paid ? 'text-emerald-700' : failed ? 'text-rose-700' : 'text-amber-700'}`}>{paid ? 'Successful' : failed ? 'Failed' : payment?.gatewayPaymentStatus || 'Pending confirmation'}</p></div>
+              <div><p className="text-xs text-[#718198]">Current payment status</p><p className={`mt-1 text-sm font-extrabold ${paid ? 'text-emerald-700' : failed ? 'text-rose-700' : 'text-amber-700'}`}>{paid ? 'Successful' : payment?.status === 'expired' ? 'Expired' : failed ? 'Failed' : payment?.gatewayPaymentStatus || 'Pending confirmation'}</p></div>
               {payment?.verifiedAt && <div><p className="text-xs text-[#718198]">Payment verified</p><p className="mt-1 text-sm font-semibold text-[#17365D]">{new Date(payment.verifiedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p></div>}
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function CashfreeReturn() {
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
               <p className="font-bold">Your payment is being processed.</p>
               <p className="mt-2">Your submitted details are saved against this payment reference. We are waiting for Cashfree's final confirmation. A PAN-finding request number will be generated only after successful payment confirmation.</p>
-              <p className="mt-2 text-xs">Please do not make another payment while this transaction is pending. If the page does not update within one minute, use the Check payment status button.</p>
+              <p className="mt-2 text-xs">Please do not make another payment while this transaction is pending. If the page still shows pending after automatic checks stop, use Check payment status again.</p>
             </div>
           )}
 
@@ -146,8 +146,8 @@ export default function CashfreeReturn() {
 
           {failed && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm leading-6 text-rose-900">
-              <p className="font-bold">This payment attempt was not successful.</p>
-              <p className="mt-2">Cashfree has reported the payment as {payment.gatewayPaymentStatus || 'failed'}. No PAN-finding request has been created for this unsuccessful payment.</p>
+              <p className="font-bold">{payment?.status === 'expired' ? 'This checkout has expired.' : 'This payment attempt was not successful.'}</p>
+              <p className="mt-2">Cashfree has reported the payment as {payment?.status === 'expired' ? 'EXPIRED' : (payment.gatewayPaymentStatus || 'failed')}. No PAN-finding request has been created for this unpaid checkout.</p>
               <p className="mt-2">If your bank account was debited, please do not pay again immediately. Keep the payment reference and contact PANKhojo support so the transaction can be checked.</p>
             </div>
           )}
@@ -163,7 +163,7 @@ export default function CashfreeReturn() {
 
           {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
           {stillChecking && <p className="flex items-start gap-2 text-xs leading-5 text-[#718198]"><ShieldCheck size={16} className="shrink-0 text-[#159B83]" />{failed ? 'We received a failed-attempt update. We are briefly checking for any later successful retry before closing this confirmation.' : 'Cashfree webhooks are the primary confirmation source. This page refreshes your saved payment details every 5 seconds; backend reconciliation is used only if the webhook is delayed.'}</p>}
-          {!paid && !autoChecking && <p className="text-xs leading-5 text-[#718198]">Automatic checking has paused. You can check again manually. If your bank account was debited, do not make another payment until the first transaction is confirmed.</p>}
+          {!paid && !autoChecking && <p className="text-xs leading-5 text-[#718198]">Automatic checking has paused after seven minutes. You can check again manually. If your bank account was debited, do not make another payment until the first transaction is confirmed.</p>}
 
           <button type="button" onClick={() => window.location.assign('/')} className="h-11 w-full rounded-xl border border-[#DCE5ED] bg-white text-sm font-bold text-[#52667D]">Return to PANKhojo</button>
         </div>

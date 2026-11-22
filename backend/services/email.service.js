@@ -178,3 +178,27 @@ export const sendPanPdfPasswordEmail = async ({ email, fullName, requestNumber, 
     const text = `Your PANKhojo PDF password for ${requestNumber}: ${password}. Keep it confidential.`;
     return sendTransactionalEmail({ to: email, subject: `Separate PDF password — ${requestNumber}`, html, text });
 };
+
+// Internal alert sent only after Cashfree SUCCESS has created a service request.
+// Never include Aadhaar or PAN values in operational email notifications.
+export const sendAdminNewRequestEmail = async ({
+    fullName, email, phone, requestNumber, paymentReference, paymentId,
+    amount, currency = 'INR', createdAt = new Date()
+}) => {
+    const recipient = process.env.ADMIN_NOTIFICATION_EMAIL || 'harshsahu1917@gmail.com';
+    const formattedAmount = new Intl.NumberFormat('en-IN', {
+        style: 'currency', currency, minimumFractionDigits: 2
+    }).format(Number(amount) / 100);
+    const formattedDate = new Date(createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const rows = [
+        ['Customer name', fullName], ['Customer email', email], ['Mobile number', phone],
+        ['Request reference', requestNumber], ['Payment reference', paymentReference],
+        ['Cashfree transaction ID', paymentId || 'Not provided'], ['Amount', formattedAmount],
+        ['Created (IST)', formattedDate]
+    ];
+    const htmlRows = rows.map(([label, value]) => `<tr><td style="padding:9px 12px;color:#607089;border-bottom:1px solid #e7edf3">${escapeHtml(label)}</td><td style="padding:9px 12px;font-weight:600;border-bottom:1px solid #e7edf3;word-break:break-word">${escapeHtml(value || '—')}</td></tr>`).join('');
+    const html = `<!doctype html><html><body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#17243b;padding:24px"><div style="max-width:620px;margin:auto;background:#fff;border-radius:14px;overflow:hidden"><div style="background:#10243e;color:#fff;padding:22px 26px;font-size:22px;font-weight:700">PANKhojo · Admin alert</div><div style="padding:26px"><h1 style="font-size:21px;margin:0 0 10px">New paid request created</h1><p style="color:#607089;line-height:1.6">Cashfree has confirmed the payment and the customer request has been created.</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">${htmlRows}</table><p style="font-size:12px;color:#607089;margin-top:20px">Aadhaar and PAN details are intentionally excluded from this email.</p></div></div></body></html>`;
+    const text = `PANKhojo — New paid request created\n\nCashfree confirmed payment and a customer request was created.\n\n${rows.map(([label, value]) => `${label}: ${value || '—'}`).join('\n')}\n\nAadhaar and PAN details are not included.`;
+    return sendTransactionalEmail({ to: recipient, subject: `New PANKhojo request — ${requestNumber}`, html, text });
+};
+

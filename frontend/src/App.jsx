@@ -126,7 +126,7 @@ const translations = {
       },
       {
         q: "How long does PAN recovery take?",
-        a: "Our usual PAN-finding time is 2–3 days. This is an estimate, not a guarantee; delays may occur if additional verification or external records take longer. We will notify you when your request is completed.",
+        a: "Our expected processing time is 1–2 working days. This is an estimate, not a guarantee; delays may occur if additional verification or external records take longer. We will notify you when your request is completed.",
       },
       {
         q: "Do I need to upload my Aadhaar card or photo?",
@@ -256,7 +256,7 @@ const translations = {
       },
       {
         q: "PAN रिकवरी में कितना समय लगेगा?",
-        a: "PAN खोजने में सामान्यतः 2–3 दिन लगते हैं। यह अनुमान है, गारंटी नहीं। अतिरिक्त सत्यापन या बाहरी रिकॉर्ड के कारण देरी हो सकती है। अनुरोध पूरा होने पर आपको सूचित किया जाएगा।",
+        a: "PAN खोजने में सामान्यतः 1–2 कार्यदिवस लगते हैं। यह अनुमान है, गारंटी नहीं। अतिरिक्त सत्यापन या बाहरी रिकॉर्ड के कारण देरी हो सकती है। अनुरोध पूरा होने पर आपको सूचित किया जाएगा।",
       },
       {
         q: "क्या Aadhaar कार्ड या फोटो अपलोड करना होगा?",
@@ -789,13 +789,13 @@ function App() {
                 </span>
               </a>
               <a
-                href="mailto:support.pankhojo.in@gmail.com"
+                href="mailto:harshsahu1917@gmail.com"
                 className="inline-flex items-center justify-center gap-3 rounded-xl border border-[#DCE5EE] bg-[#FAFBFD] px-6 py-4 text-sm font-bold text-[#17365D] transition hover:bg-[#F0F5F8]"
               >
                 <Mail size={18} />
                 <span className="text-left">
                   <span className="block">{t.supportEmailLabel}</span>
-                  <span className="mt-0.5 block break-all text-xs font-medium text-slate-500">support.pankhojo.in@gmail.com</span>
+                  <span className="mt-0.5 block break-all text-xs font-medium text-slate-500">harshsahu1917@gmail.com</span>
                 </span>
               </a>
             </div>
@@ -875,11 +875,11 @@ function App() {
                 <span>7725943124</span>
               </a>
               <a
-                href="mailto:support.pankhojo.in@gmail.com"
+                href="mailto:harshsahu1917@gmail.com"
                 className="mt-3 flex items-start gap-3 break-all text-sm text-slate-400 transition hover:text-white"
               >
                 <Mail size={16} className="mt-0.5 shrink-0" />
-                <span>support.pankhojo.in@gmail.com</span>
+                <span>harshsahu1917@gmail.com</span>
               </a>
             </div>
           </div>

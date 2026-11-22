@@ -21,7 +21,7 @@ const documents = {
             ["7. Cookies and technical information",
                 "Our website or service providers may process limited technical information needed for website security, functionality and performance. Any optional analytics or marketing technologies should be disclosed and controlled separately."],
             ["8. Contact and complaints",
-                "For privacy questions, requests or complaints, contact: [PRIVACY EMAIL]. Grievance contact: [NAME / ROLE / EMAIL / POSTAL ADDRESS]."]
+                "For privacy questions, requests or complaints, contact: harshsahu1917@gmail.com. Grievance contact: Harsh Sahu / Admin / harshsahu1917@gmail.com / Postal code 305001."]
         ]
     },
     terms: {
@@ -46,11 +46,11 @@ const documents = {
             ["9. Liability",
                 "Nothing in these terms excludes or limits liability where such exclusion or limitation is prohibited by law, including liability for fraud, wilful misconduct, or rights that cannot legally be waived. To the extent permitted by law, PANKhojo is not responsible for delays or failures caused by inaccurate information supplied by the customer, unavailable external systems or events beyond our reasonable control."],
             ["10. Complaints and dispute resolution",
-                "Please first contact [SUPPORT EMAIL] so we can try to resolve your concern. Nothing in this clause prevents you from exercising rights or remedies available under applicable Indian law or approaching a competent authority or forum."],
+                "Please first contact harshsahu1917@gmail.com so we can try to resolve your concern. Nothing in this clause prevents you from exercising rights or remedies available under applicable Indian law or approaching a competent authority or forum."],
             ["11. Changes and governing law",
                 "We may update these terms when our service or legal requirements change. The applicable version will be displayed on this website. These terms are governed by the laws of India, subject to mandatory consumer protections and the jurisdiction of competent courts."],
             ["12. Contact details",
-                "Business name: [LEGAL BUSINESS NAME]. Address: [REGISTERED BUSINESS ADDRESS]. Email: [SUPPORT EMAIL]. Grievance contact: [NAME / ROLE / EMAIL]."]
+                "Business name: PANKhojo. Postal code: 305001. Email: harshsahu1917@gmail.com. Phone: 7725943124. Grievance contact: Harsh Sahu / Admin."]
         ]
     }
 };
