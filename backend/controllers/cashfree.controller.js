@@ -78,7 +78,7 @@ export const createCashfreeOrder = async (req, res) => {
 
 // Cashfree order expiry prevents new attempts after five minutes. A pending attempt is
 // never failed solely because this local timer elapsed; we require Cashfree's final state.
-const CHECKOUT_EXPIRY_MINUTES = 15;
+const CHECKOUT_EXPIRY_MINUTES = 16;
 
 // Browser polling is only a fallback when a webhook has not updated the order.
 // Keep this in-process cooldown so one customer refresh cannot call Cashfree repeatedly.
