@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RequestPreview from "./RequestPreview.jsx";
 import TrackRequest from "./TrackRequest.jsx";
 import TrackPayment from "./TrackPayment.jsx";
-// import CashfreePaymentReturn from "./CashfreePaymentReturn.jsx";
+import HeroVisual from "./HeroVisual.jsx";
 import {
   Fingerprint,
   Menu,
@@ -29,18 +29,23 @@ import {
 
 const translations = {
   en: {
-    nav: ["Home", "How it works", "Why PANKhojo", "FAQs"],
+    nav: ["Home", "How it works", "PAN knowledge", "About us"],
     contact: "Contact us",
     eyebrow: "INDEPENDENT PAN FINDER SERVICE",
-    title: "Find Your Existing PAN Using Aadhaar Details.",
+    title: "Forgot Your PAN? Find your existing PAN with Aadhaar number.",
     subtitle:
-      "Forgot your PAN number? Get assistance with finding your existing PAN using Aadhaar details through a secure, consent-based process.",
-    primary: "Find My Existing PAN",
-    secondary: "Why PANKhojo",
+      "Forgot your PAN number? PANKhojo offers independent private assistance to help existing PAN holders locate their PAN using an Aadhaar number, where an authorised process is available. We ask for the Aadhaar number only—not an Aadhaar photo or document.",
+    primary: "Start your PAN request",
+    secondary: "See how it works",
+    startRequest: "Start your request",
+    requestSectionEyebrow: "READY TO BEGIN?",
+    requestSectionTitle: "Start your PAN-finding request.",
+    requestSectionDesc: "Enter your details in a guided form. You can review your information and the applicable service fee before deciding whether to proceed.",
+    requestSectionNote: "For existing PAN holders only · Aadhaar number only when required · No Aadhaar photo or document",
     existing: "For existing PAN holders only",
     cardTitle: "Find your existing PAN",
     cardDesc:
-      "Get guided assistance to locate your existing PAN using your Aadhaar details, subject to an authorized verification process.",
+      "Request help locating your existing PAN. Where required, we ask for your 12-digit Aadhaar number only. No Aadhaar photo or document is needed.",
     status: "PAN finding service",
     statusDesc:
       "A guided process to find your existing PAN number.",
@@ -60,8 +65,8 @@ const translations = {
         desc: "Our team reviews the details and follows the applicable verification process.",
       },
       {
-        title: "Receive your PAN number",
-        desc: "If the existing PAN is lawfully retrieved and your identity is verified, the result will be delivered through a secure channel.",
+        title: "Receive an update",
+        desc: "If the request can be processed, we will provide an update through your registered contact channel. A result is not guaranteed.",
       },
     ],
     whyEyebrow: "THE PANKHOJO APPROACH",
@@ -89,7 +94,7 @@ const translations = {
     privacyEyebrow: "YOUR INFORMATION MATTERS",
     privacyTitle: "Your identity deserves careful protection.",
     privacyDesc:
-      "PAN and Aadhaar information is sensitive. Our service is being designed around data minimization, informed consent and responsible information handling.",
+      "PAN and Aadhaar information is sensitive. If Aadhaar is required for an eligible request, we ask for the Aadhaar number only—not a photo or document—and explain its use before submission.",
     privacyPoints: [
       "Only necessary information",
       "Clear explanation of data usage",
@@ -97,7 +102,7 @@ const translations = {
       "Defined retention and deletion policies",
     ],
     warning:
-      "Never share your Aadhaar OTP, passwords or identity documents with unknown people.",
+      "We request an Aadhaar number only—not an Aadhaar photo or document. Never share your Aadhaar OTP or passwords with anyone.",
     faqEyebrow: "NEED MORE CLARITY?",
     faqTitle: "Frequently asked questions.",
     faqDesc:
@@ -122,6 +127,10 @@ const translations = {
       {
         q: "How long does PAN recovery take?",
         a: "Our usual PAN-finding time is 2–3 days. This is an estimate, not a guarantee; delays may occur if additional verification or external records take longer. We will notify you when your request is completed.",
+      },
+      {
+        q: "Do I need to upload my Aadhaar card or photo?",
+        a: "No. Where an eligible request uses an authorised process, we ask for your 12-digit Aadhaar number only. You do not need to upload an Aadhaar photo or document. Never share your Aadhaar OTP.",
       },
       {
         q: "Will I need to share my Aadhaar OTP?",
@@ -151,18 +160,23 @@ const translations = {
   },
 
   hi: {
-    nav: ["होम", "कैसे काम करता है", "हमें क्यों चुनें", "सवाल-जवाब"],
+    nav: ["होम", "यह कैसे काम करता है", "PAN जानकारी", "हमारे बारे में"],
     contact: "संपर्क करें",
     eyebrow: "स्वतंत्र PAN खोज सेवा",
-    title: "आधार विवरण से अपना मौजूदा PAN खोजने में सहायता पाएं।",
+    title: "अपना मौजूदा PAN खोजने की प्रक्रिया समझें और सहायता पाएं।",
     subtitle:
-      "अपना PAN नंबर भूल गए हैं? सुरक्षित और सहमति-आधारित प्रक्रिया के माध्यम से मौजूदा PAN खोजने में सहायता पाएं।",
-    primary: "प्रक्रिया जानें",
-    secondary: "PANKhojo क्यों?",
+      "अपना PAN नंबर भूल गए हैं? PANKhojo मौजूदा PAN खोजने में निजी सहायता देता है। जहां अधिकृत प्रक्रिया उपलब्ध हो, वहां केवल 12 अंकों का Aadhaar नंबर मांगा जाता है—Aadhaar फोटो या दस्तावेज़ नहीं।",
+    primary: "अपना PAN अनुरोध शुरू करें",
+    secondary: "प्रक्रिया जानें",
+    startRequest: "अनुरोध शुरू करें",
+    requestSectionEyebrow: "शुरू करने के लिए तैयार?",
+    requestSectionTitle: "अपना PAN खोज अनुरोध शुरू करें।",
+    requestSectionDesc: "सरल फॉर्म में अपनी जानकारी भरें। आगे बढ़ने का निर्णय लेने से पहले आप विवरण और लागू सेवा शुल्क की समीक्षा कर सकते हैं।",
+    requestSectionNote: "केवल मौजूदा PAN धारकों के लिए · जरूरत पड़ने पर केवल Aadhaar नंबर · Aadhaar फोटो या दस्तावेज़ नहीं",
     existing: "केवल मौजूदा PAN धारकों के लिए",
     cardTitle: "अपना मौजूदा PAN खोजें",
     cardDesc:
-      "अधिकृत सत्यापन प्रक्रिया के अधीन, आधार विवरण के माध्यम से अपना मौजूदा PAN खोजने में सहायता पाएं।",
+      "अपना मौजूदा PAN खोजने के लिए अनुरोध करें। जरूरत पड़ने पर केवल 12 अंकों का Aadhaar नंबर मांगा जाता है—Aadhaar फोटो या दस्तावेज़ नहीं।",
     status: "PAN खोज सेवा",
     statusDesc:
       "जिन लोगों का मौजूदा PAN नंबर खो गया है या याद नहीं है, उनके लिए सरल PAN खोज प्रक्रिया।",
@@ -182,8 +196,8 @@ const translations = {
         desc: "हमारी टीम आपके विवरण की समीक्षा करेगी और लागू सत्यापन प्रक्रिया का पालन करेगी।",
       },
       {
-        title: "अपना PAN नंबर प्राप्त करें",
-        desc: "सफल प्रोसेसिंग के बाद परिणाम आपके सत्यापित संपर्क पर सुरक्षित रूप से भेजा जाएगा।",
+        title: "अपने अनुरोध का अपडेट पाएं",
+        desc: "यदि अनुरोध पर आगे बढ़ना संभव है, तो रजिस्टर्ड संपर्क माध्यम से अपडेट दिया जाएगा। परिणाम की गारंटी नहीं है।",
       },
     ],
     whyEyebrow: "PANKHOJO की सोच",
@@ -211,7 +225,7 @@ const translations = {
     privacyEyebrow: "आपकी जानकारी महत्वपूर्ण है",
     privacyTitle: "आपकी पहचान की सुरक्षा जरूरी है।",
     privacyDesc:
-      "PAN और Aadhaar की जानकारी संवेदनशील है। हमारी सेवा न्यूनतम डेटा, स्पष्ट सहमति और जिम्मेदार जानकारी प्रबंधन पर आधारित होगी।",
+      "PAN और Aadhaar की जानकारी संवेदनशील है। जरूरत पड़ने पर केवल Aadhaar नंबर मांगा जाता है, फोटो या दस्तावेज़ नहीं। जानकारी का उपयोग स्पष्ट सहमति और जिम्मेदार तरीके से किया जाना चाहिए।",
     privacyPoints: [
       "केवल आवश्यक जानकारी",
       "डेटा उपयोग की स्पष्ट जानकारी",
@@ -219,7 +233,7 @@ const translations = {
       "डेटा रखने और हटाने की निर्धारित नीति",
     ],
     warning:
-      "अपना Aadhaar OTP, पासवर्ड या पहचान दस्तावेज अनजान लोगों के साथ साझा न करें।",
+      "हम Aadhaar फोटो या दस्तावेज़ नहीं मांगते—केवल Aadhaar नंबर। अपना Aadhaar OTP या पासवर्ड किसी के साथ साझा न करें।",
     faqEyebrow: "और जानकारी चाहिए?",
     faqTitle: "अक्सर पूछे जाने वाले सवाल।",
     faqDesc: "PANKhojo की PAN खोज सेवा से जुड़े सामान्य सवालों के जवाब।",
@@ -243,6 +257,10 @@ const translations = {
       {
         q: "PAN रिकवरी में कितना समय लगेगा?",
         a: "PAN खोजने में सामान्यतः 2–3 दिन लगते हैं। यह अनुमान है, गारंटी नहीं। अतिरिक्त सत्यापन या बाहरी रिकॉर्ड के कारण देरी हो सकती है। अनुरोध पूरा होने पर आपको सूचित किया जाएगा।",
+      },
+      {
+        q: "क्या Aadhaar कार्ड या फोटो अपलोड करना होगा?",
+        a: "नहीं। पात्र अनुरोध में अधिकृत प्रक्रिया के तहत केवल 12 अंकों का Aadhaar नंबर मांगा जाता है। Aadhaar फोटो या दस्तावेज़ अपलोड करने की जरूरत नहीं है। Aadhaar OTP कभी साझा न करें।",
       },
       {
         q: "क्या मुझे Aadhaar OTP देना होगा?",
@@ -276,7 +294,7 @@ const officialUrl = "https://www.incometax.gov.in/";
 
 function Brand({ light = false }) {
   return (
-    <a href="#home" className="flex items-center gap-3">
+    <a href="/" className="flex items-center gap-3">
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#17365D] text-white shadow-sm">
         <Fingerprint size={26} strokeWidth={1.8} />
       </div>
@@ -319,18 +337,20 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState(0);
   const [showRequestPreview, setShowRequestPreview] = useState(false);
-  const [showTracking, setShowTracking] = useState(new URLSearchParams(window.location.search).get("track") === "1");
-  const [showPaymentTracking, setShowPaymentTracking] = useState(new URLSearchParams(window.location.search).get("payment") === "1");
-  const cashfreeOrderId = new URLSearchParams(window.location.search).get("cashfree_order_id");
+  const [requestPrefill, setRequestPrefill] = useState(null);
+  const [showTracking, setShowTracking] = useState(false);
+  const [showPaymentTracking, setShowPaymentTracking] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("track") === "1") setShowTracking(true);
+    if (params.get("payment") === "1") setShowPaymentTracking(true);
+  }, []);
 
   const t = translations[language];
 
-  if (cashfreeOrderId) {
-    return <CashfreePaymentReturn orderId={cashfreeOrderId} onBack={() => { window.history.replaceState({}, "", window.location.pathname); window.location.reload(); }} />;
-  }
-
   if (showRequestPreview) {
-    return <RequestPreview language={language} onBack={() => setShowRequestPreview(false)} />;
+    return <RequestPreview language={language} initialValues={requestPrefill} onBack={() => { setShowRequestPreview(false); setRequestPrefill(null); }} />;
   }
   if (showTracking) {
     return <TrackRequest language={language} onBack={() => { setShowTracking(false); window.history.replaceState({}, "", window.location.pathname); }} />;
@@ -338,7 +358,7 @@ function App() {
   if (showPaymentTracking) {
     return <TrackPayment onBack={() => { setShowPaymentTracking(false); window.history.replaceState({}, "", window.location.pathname); }} />;
   }
-  const navIds = ["home", "how-it-works", "why-us", "faqs"];
+  const navLinks = ["/", "/how-pankhojo-works", "/pan-number-guide", "/about-us"];
 
   const benefitIcons = [
     ClipboardCheck,
@@ -362,7 +382,7 @@ function App() {
             {t.nav.map((item, index) => (
               <a
                 key={item}
-                href={`#${navIds[index]}`}
+                href={navLinks[index]}
                 className="text-[13px] font-semibold text-slate-600 transition hover:text-[#17365D]"
               >
                 {item}
@@ -389,11 +409,10 @@ function App() {
             </button>
             <button onClick={() => setShowPaymentTracking(true)} className="rounded-lg border border-[#DCE5EE] px-4 py-2.5 text-sm font-bold text-[#176B5A] transition hover:bg-slate-50">Track Payment</button>
             <a
-              href="#contact"
-              className="flex items-center gap-2 rounded-lg bg-[#17365D] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#244C79]"
+              href="/contact-us"
+              className="flex items-center gap-2 rounded-lg border border-[#DCE5EE] px-4 py-3 text-sm font-bold text-[#17365D] transition hover:bg-slate-50"
             >
               {t.contact}
-              <ArrowUpRight size={16} />
             </a>
           </div>
 
@@ -423,7 +442,7 @@ function App() {
             {t.nav.map((item, index) => (
               <a
                 key={item}
-                href={`#${navIds[index]}`}
+                href={navLinks[index]}
                 onClick={closeMenu}
                 className="block rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >
@@ -438,9 +457,9 @@ function App() {
             </button>
             <button onClick={() => { closeMenu(); setShowPaymentTracking(true); }} className="mt-2 block w-full rounded-lg border border-[#DCE5EE] px-4 py-3 text-center text-sm font-bold text-[#176B5A]">Track Payment</button>
             <a
-              href="#contact"
+              href="/contact-us"
               onClick={closeMenu}
-              className="mt-2 block rounded-lg bg-[#17365D] px-4 py-3 text-center text-sm font-bold text-white"
+              className="mt-2 block rounded-lg border border-[#DCE5EE] px-4 py-3 text-center text-sm font-bold text-[#17365D]"
             >
               {t.contact}
             </a>
@@ -475,16 +494,17 @@ function App() {
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#how-it-works"
+                <button
+                  type="button"
+                  onClick={() => setShowRequestPreview(true)}
                   className="inline-flex items-center justify-center gap-3 rounded-lg bg-[#17365D] px-7 py-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#244C79] hover:shadow-lg"
                 >
                   {t.primary}
                   <ArrowRight size={17} />
-                </a>
+                </button>
 
                 <a
-                  href="#why-us"
+                  href="/how-pankhojo-works"
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#DCE3EA] bg-white px-7 py-4 text-sm font-bold text-[#29415D] transition hover:bg-[#F5F8FB]"
                 >
                   {t.secondary}
@@ -498,88 +518,7 @@ function App() {
               </div>
             </div>
 
-            {/* SERVICE PANEL */}
-
-            <div className="mx-auto w-full max-w-[475px]">
-              <div className="overflow-hidden rounded-2xl border border-[#E5EAF0] bg-white shadow-[0_14px_45px_rgba(20,40,70,0.07)]">
-
-                <div className="border-b border-[#E9EDF2] px-6 py-7 sm:px-8">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF6F3] text-[#17365D]">
-                      <Fingerprint size={27} />
-                    </div>
-
-                    <div className="flex-1">
-                      <h2 className="font-display text-lg font-extrabold text-[#172438]">
-                        {t.cardTitle}
-                      </h2>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {t.existing}
-                      </p>
-                    </div>
-
-                    <ShieldCheck size={24} className="text-[#168F7A]" />
-                  </div>
-                </div>
-
-                <div className="p-6 sm:p-8">
-                  <p className="text-sm leading-7 text-slate-500">
-                    {t.cardDesc}
-                  </p>
-
-                  <div className="mt-7 rounded-xl border border-[#DCECE7] bg-[#F3FAF7] p-5">
-                    <div className="flex items-start gap-3">
-                      <ShieldCheck
-                        size={21}
-                        className="mt-0.5 shrink-0 text-[#168F7A]"
-                      />
-                      <div>
-                        <p className="text-sm font-bold text-[#1D4A43]">
-                          {language === "en" ? "PAN finding for existing PAN holders" : "मौजूदा PAN धारकों के लिए PAN खोज"}
-                        </p>
-                        <p className="mt-2 text-xs leading-6 text-[#52716A]">
-                          {language === "en" ? "For individuals who have forgotten or misplaced their PAN number. New PAN applications are not included." : "उन लोगों के लिए जो अपना PAN नंबर भूल गए हैं या खो चुके हैं। नई PAN एप्लिकेशन इसमें शामिल नहीं हैं।"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setShowRequestPreview(true)}
-                    className="mt-5 w-full rounded-lg bg-[#17365D] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#244C79]"
-                  >
-                    {language === "en" ? "Start your request" : "अनुरोध शुरू करें"}
-                  </button>
-
-                  <div className="mt-7 grid grid-cols-3 divide-x divide-[#E9EDF2] border-t border-[#E9EDF2] pt-6">
-                    {t.trust.map((item, index) => {
-                      const icons = [
-                        ClipboardCheck,
-                        IndianRupee,
-                        LockKeyhole,
-                      ];
-                      const Icon = icons[index];
-
-                      return (
-                        <div key={item} className="px-2 text-center">
-                          <Icon
-                            size={19}
-                            className="mx-auto text-[#168F7A]"
-                          />
-                          <p className="mt-2 text-[10px] font-semibold leading-4 text-slate-500">
-                            {item}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <p className="mt-4 text-center text-[11px] text-slate-400">
-                Independent private service · Rajasthan, India
-              </p>
-            </div>
+            <HeroVisual onStartRequest={() => { setRequestPrefill(null); setShowRequestPreview(true); }} />
           </div>
         </section>
 
@@ -625,6 +564,40 @@ function App() {
                   </article>
                 );
               })}
+            </div>
+          </div>
+        </section>
+
+        {/* START YOUR REQUEST */}
+
+        <section
+          id="start-request"
+          className="scroll-mt-24 px-5 pb-20 sm:px-8 lg:px-10"
+        >
+          <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-[#DCE8E8] bg-gradient-to-r from-[#F0F8F7] via-white to-[#F5F8FC] p-7 shadow-[0_16px_45px_rgba(23,54,93,0.06)] sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
+            <div className="max-w-3xl">
+              <p className="mb-3 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#168F7A]">
+                {t.requestSectionEyebrow}
+              </p>
+              <h2 className="font-display text-2xl font-extrabold tracking-tight text-[#172438] sm:text-3xl">
+                {t.requestSectionTitle}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
+                {t.requestSectionDesc}
+              </p>
+              <p className="mt-4 text-xs font-semibold leading-6 text-[#527080]">
+                {t.requestSectionNote}
+              </p>
+            </div>
+            <div className="mt-7 shrink-0 lg:mt-0">
+              <button
+                type="button"
+                onClick={() => setShowRequestPreview(true)}
+                className="inline-flex w-full items-center justify-center gap-3 rounded-lg bg-[#17365D] px-7 py-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#244C79] hover:shadow-lg sm:w-auto"
+              >
+                {t.startRequest}
+                <ArrowRight size={17} />
+              </button>
             </div>
           </div>
         </section>
@@ -769,13 +742,11 @@ function App() {
                       />
                     </button>
 
-                    {isOpen && (
-                      <div className="pb-7 pr-8">
-                        <p className="text-sm leading-8 text-slate-500">
-                          {faq.a}
-                        </p>
-                      </div>
-                    )}
+                    <div className={isOpen ? "pb-7 pr-8" : "hidden pb-7 pr-8"}>
+                      <p className="text-sm leading-8 text-slate-500">
+                        {faq.a}
+                      </p>
+                    </div>
                   </div>
                 );
               })}
@@ -855,7 +826,7 @@ function App() {
                 {t.nav.map((item, index) => (
                   <a
                     key={item}
-                    href={`#${navIds[index]}`}
+                    href={navLinks[index]}
                     className="transition hover:text-white"
                   >
                     {item}
@@ -879,9 +850,10 @@ function App() {
                 <ArrowUpRight size={14} />
               </a>
               <div className="mt-4 flex flex-col gap-3 text-sm text-slate-400">
-                <a href="/how-to-find-existing-pan-number.html" className="transition hover:text-white">How to find your existing PAN</a>
-                <a href="/refund-policy.html" className="transition hover:text-white">Cancellation & Refund Policy</a>
-                <a href="/terms.html" className="transition hover:text-white">Terms & Conditions</a>
+                <a href="/pan-number-guide" className="transition hover:text-white">PAN knowledge centre</a>
+                <a href="/privacy-policy" className="transition hover:text-white">Privacy Policy</a>
+                <a href="/refund-policy" className="transition hover:text-white">Cancellation & Refund Policy</a>
+                <a href="/terms-and-conditions" className="transition hover:text-white">Terms & Conditions</a>
               </div>
             </div>
 
@@ -924,10 +896,10 @@ function App() {
             </p>
 
             <div className="flex gap-6">
-              <a href="#privacy" className="hover:text-white">
+              <a href="/privacy-policy" className="hover:text-white">
                 {t.privacy}
               </a>
-              <a href="#home" className="hover:text-white">
+              <a href="/" className="hover:text-white">
                 {t.home}
               </a>
             </div>

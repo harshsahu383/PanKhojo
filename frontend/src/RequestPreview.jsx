@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import "./RequestPreview.css";
 import {
-  ArrowLeft, ArrowRight, CalendarDays, Check, CircleHelp, Copy,
-  Clock3, Fingerprint, LockKeyhole, Mail, MapPin, Phone,
-  ShieldCheck, UserRound, X
+  ArrowLeft, ArrowRight, Check, CircleHelp, Copy,
+  Clock3, Eye, EyeOff, Fingerprint, LockKeyhole, Mail, Phone,
+  ShieldCheck, UserRound, X, CalendarDays, MapPin, ChevronDown
 } from "lucide-react";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
@@ -17,6 +17,28 @@ const resolveQrImageUrl = (value) => {
   if (/^(https?:\/\/|data:image\/)/i.test(source)) return source;
   return new URL(source.replace(/^\/+/, ""), `${API.replace(/\/+$/, "")}/`).toString();
 };
+
+const createMaskedPanPreview = () => {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const digits = "0123456789";
+  const randomLetter = () => letters[Math.floor(Math.random() * letters.length)];
+  const randomDigit = () => digits[Math.floor(Math.random() * digits.length)];
+  const pan = [
+    randomLetter(), randomLetter(), randomLetter(), randomLetter(), randomLetter(),
+    randomDigit(), randomDigit(), randomDigit(), randomDigit(), randomLetter()
+  ].join("");
+  return `${pan.slice(0, 2)}••••${pan.slice(6, 9)}${pan.slice(9)}`;
+};
+
+const loadCashfreeSdk = () => new Promise((resolve, reject) => {
+  if (window.Cashfree) return resolve(window.Cashfree);
+  const script = document.createElement("script");
+  script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+  script.async = true;
+  script.onload = () => window.Cashfree ? resolve(window.Cashfree) : reject(new Error("Cashfree checkout could not be initialized."));
+  script.onerror = () => reject(new Error("Unable to load secure payment checkout."));
+  document.head.appendChild(script);
+});
 
 const initial = {
   fullName: "",
@@ -33,19 +55,26 @@ const copy = {
   en: {
     back: "Back to home",
     title: "Find your existing PAN",
-    intro: "Submit your details so we can find your existing PAN information.",
+    intro: "Submit the information requested to help locate your existing PAN. Where an authorised process requires Aadhaar, we ask for the 12-digit number only—not a photo or document.",
     section: "Your information",
-    sectionText: "Please provide accurate information so our team can review your request.",
+    sectionText: "Only four details are needed to submit your request. Never share your Aadhaar OTP.",
     fullName: "Full name",
     email: "Email address",
     phone: "Mobile number",
-    dob: "Date of birth",
-    father: "Father's name (optional)",
-    city: "City",
-    state: "State",
     aadhaar: "Aadhaar number",
-    submit: "Continue to UPI payment",
-    submitting: "Preparing payment...",
+    fullNamePlaceholder: "Enter your full name",
+    emailPlaceholder: "you@example.com",
+    phonePlaceholder: "Enter 10-digit mobile number",
+    aadhaarPlaceholder: "Enter 12-digit Aadhaar number",
+    dateOfBirthPlaceholder: "Select date of birth",
+    fatherNamePlaceholder: "Enter father's name",
+    cityPlaceholder: "Enter city",
+    statePlaceholder: "Enter state",
+    aadhaarHint: "Enter the 12-digit number only. No Aadhaar photo or document is required. Never share your Aadhaar OTP.",
+    showAadhaar: "Show Aadhaar number",
+    hideAadhaar: "Hide Aadhaar number",
+    submit: "Continue to secure payment",
+    submitting: "Preparing secure checkout...",
     paymentFailed: "Payment could not be completed. No request has been created.",
     required: "Please complete the required fields and accept both the Privacy Policy and Terms of Service.",
     failed: "Unable to submit your request. Please try again.",
@@ -65,7 +94,7 @@ const copy = {
     eligibilityTitle: "Who can use this service?",
     eligibilityText: "Individuals seeking to find their own existing PAN details. A parent or legally authorised representative may submit a request where legally permitted and with appropriate authority.",
     privacyNoticeTitle: "Your information matters",
-    privacyNoticeText: "Your information is used to handle your request in accordance with our Privacy Policy. Please only provide information you are authorised to share.",
+    privacyNoticeText: "For Aadhaar, we request the number only—not an Aadhaar photo or document. Your information is handled under the Privacy Policy and should only be submitted where you are authorised to do so.",
     privacyCheck: "I have read and agree to the Privacy Policy.",
     termsCheck: "I have read and agree to the Terms of Service.",
     privacy: "Privacy Policy",
@@ -78,11 +107,23 @@ const copy = {
     stepThree: "Payment",
     reviewTitle: "Review your information",
     reviewIntro: "Check these details carefully before continuing to payment.",
+    panPreviewTitle: "Your PAN preview",
+    panPreviewStatus: "Sample PAN format",
+    panPreviewMask: "ABCDE1234F",
+    panPreviewIllustrative: "Sample PAN format for illustration only. This is not a PAN retrieved for your request.",
+    panPreviewUnlock: "Your PAN result is shared with you after your request is processed.",
+    additionalTitle: "Additional details",
+    additionalHint: "Optional — add these details only if they are relevant to your request.",
+    dateOfBirth: "Date of birth",
+    fatherName: "Father's name",
+    city: "City",
+    state: "State",
+    panPreviewDelivery: "After processing, we will send your PAN to your registered email address as a password-protected PDF. It will not be displayed on this website.",
     editDetails: "Edit details",
-    payNow: "Continue to UPI payment",
-    paymentProcessing: "Preparing checkout...",
+    payNow: "Continue to secure payment",
+    paymentProcessing: "Opening Cashfree checkout...",
     serviceFee: "Payment amount",
-    feeNotice: "Scan the PANKhojo UPI QR code, pay the exact amount, then submit your UPI transaction reference. Your request reference is created after UTR submission; processing starts only after bank verification.",
+    feeNotice: "Pay securely through Cashfree. Your request is created only after Cashfree confirms the payment.",
     maskedAadhaar: "XXXX XXXX",
     optionalNotProvided: "Not provided",
     paymentSuccessTitle: "Payment submitted for verification",
@@ -94,18 +135,25 @@ const copy = {
   hi: {
     back: "होम पर वापस जाएं",
     title: "अपना मौजूदा PAN खोजें",
-    intro: "अपना मौजूदा PAN खोजने के लिए आवश्यक जानकारी सबमिट करें।",
+    intro: "अपना मौजूदा PAN खोजने के लिए आवश्यक जानकारी दें। अधिकृत प्रक्रिया में Aadhaar की जरूरत होने पर केवल 12 अंकों का नंबर मांगा जाता है—फोटो या दस्तावेज़ नहीं।",
     section: "आपकी जानकारी",
-    sectionText: "कृपया सही जानकारी दें ताकि हमारी टीम आपके अनुरोध की समीक्षा कर सके।",
+    sectionText: "अनुरोध के लिए केवल चार जानकारी जरूरी हैं। अपना Aadhaar OTP कभी साझा न करें।",
     fullName: "पूरा नाम",
     email: "ईमेल पता",
     phone: "मोबाइल नंबर",
-    dob: "जन्म तिथि",
-    father: "पिता का नाम (वैकल्पिक)",
-    city: "शहर",
-    state: "राज्य",
     aadhaar: "आधार नंबर",
-    submit: "UPI भुगतान के लिए आगे बढ़ें",
+    fullNamePlaceholder: "अपना पूरा नाम दर्ज करें",
+    emailPlaceholder: "you@example.com",
+    phonePlaceholder: "10 अंकों का मोबाइल नंबर दर्ज करें",
+    aadhaarPlaceholder: "12 अंकों का आधार नंबर दर्ज करें",
+    dateOfBirthPlaceholder: "जन्म तिथि चुनें",
+    fatherNamePlaceholder: "पिता का नाम दर्ज करें",
+    cityPlaceholder: "शहर दर्ज करें",
+    statePlaceholder: "राज्य दर्ज करें",
+    aadhaarHint: "केवल 12 अंकों का नंबर दर्ज करें। Aadhaar फोटो या दस्तावेज़ की जरूरत नहीं है। अपना Aadhaar OTP कभी साझा न करें।",
+    showAadhaar: "Aadhaar नंबर दिखाएं",
+    hideAadhaar: "Aadhaar नंबर छिपाएं",
+    submit: "सुरक्षित भुगतान के लिए आगे बढ़ें",
     submitting: "भुगतान तैयार हो रहा है...",
     paymentFailed: "भुगतान पूरा नहीं हुआ। कोई अनुरोध नहीं बनाया गया है।",
     required: "कृपया सभी जरूरी जानकारी भरें और गोपनीयता नीति तथा सेवा की शर्तें स्वीकार करें।",
@@ -126,7 +174,7 @@ const copy = {
     eligibilityTitle: "इस सेवा का उपयोग कौन कर सकता है?",
     eligibilityText: "वे व्यक्ति जो अपना मौजूदा PAN विवरण खोजना चाहते हैं। माता-पिता या कानूनी रूप से अधिकृत प्रतिनिधि उचित अधिकार होने पर अनुरोध कर सकते हैं।",
     privacyNoticeTitle: "आपकी जानकारी हमारे लिए महत्वपूर्ण है",
-    privacyNoticeText: "आपकी जानकारी का उपयोग हमारी गोपनीयता नीति के अनुसार आपके अनुरोध को संभालने के लिए किया जाता है। केवल वही जानकारी दें जिसे साझा करने का आपको अधिकार है।",
+    privacyNoticeText: "Aadhaar के लिए केवल नंबर मांगा जाता है—फोटो या दस्तावेज़ नहीं। जानकारी का उपयोग गोपनीयता नीति के अनुसार होगा। केवल वही जानकारी दें जिसे साझा करने का आपको अधिकार है।",
     privacyCheck: "मैंने गोपनीयता नीति पढ़ी है और उससे सहमत हूं।",
     termsCheck: "मैंने सेवा की शर्तें पढ़ी हैं और उनसे सहमत हूं।",
     privacy: "गोपनीयता नीति",
@@ -139,11 +187,23 @@ const copy = {
     stepThree: "भुगतान",
     reviewTitle: "अपनी जानकारी की समीक्षा करें",
     reviewIntro: "भुगतान से पहले कृपया सभी विवरण ध्यान से जांच लें।",
+    panPreviewTitle: "आपका PAN प्रीव्यू",
+    panPreviewStatus: "PAN का नमूना फॉर्मेट",
+    panPreviewMask: "ABCDE1234F",
+    panPreviewIllustrative: "यह केवल उदाहरण है। यह आपके अनुरोध से प्राप्त वास्तविक PAN नहीं है।",
+    panPreviewUnlock: "आपका PAN अनुरोध की प्रक्रिया पूरी होने के बाद साझा किया जाएगा।",
+    additionalTitle: "अतिरिक्त जानकारी",
+    additionalHint: "वैकल्पिक — केवल तभी भरें जब ये जानकारी आपके अनुरोध के लिए जरूरी हो।",
+    dateOfBirth: "जन्म तिथि",
+    fatherName: "पिता का नाम",
+    city: "शहर",
+    state: "राज्य",
+    panPreviewDelivery: "प्रोसेसिंग पूरी होने के बाद आपका PAN आपके रजिस्टर्ड ईमेल पर पासवर्ड-सुरक्षित PDF के रूप में भेजा जाएगा। यह वेबसाइट पर नहीं दिखाया जाएगा।",
     editDetails: "जानकारी बदलें",
-    payNow: "UPI भुगतान के लिए आगे बढ़ें",
+    payNow: "Cashfree से सुरक्षित भुगतान करें",
     paymentProcessing: "पेमेंट पेज तैयार हो रहा है...",
     serviceFee: "भुगतान राशि",
-    feeNotice: "PANKhojo का UPI QR स्कैन करें, सही राशि का भुगतान करें और UPI ट्रांजैक्शन रेफरेंस सबमिट करें। UTR सबमिट करने के बाद अनुरोध रेफरेंस बनेगा; प्रोसेसिंग बैंक सत्यापन के बाद शुरू होगी।",
+    feeNotice: "Cashfree के माध्यम से सुरक्षित भुगतान करें। Cashfree द्वारा भुगतान की पुष्टि होने के बाद ही आपका अनुरोध बनाया जाएगा।",
     maskedAadhaar: "XXXX XXXX",
     optionalNotProvided: "नहीं दिया गया",
     paymentSuccessTitle: "भुगतान सत्यापन के लिए भेजा गया",
@@ -157,7 +217,7 @@ const copy = {
 const legalDocuments = {
   privacy: {
     en: [
-      ["1. Information we collect", "We may collect your name, email address, mobile number, date of birth, city, state and information necessary to handle your request. Aadhaar information must only be collected and processed where a lawful basis and authorised process have been established."],
+      ["1. Information we collect", "We collect your name, email address, mobile number and, where a lawful basis and authorised process have been established, your 12-digit Aadhaar number to handle an eligible request. We do not ask you to upload an Aadhaar photo or document."],
       ["2. How we use information", "Information is used to receive, review and process your request, communicate with you, prevent misuse, maintain necessary records and comply with applicable legal requirements."],
       ["3. Sharing of information", "We do not sell personal information. Information may be shared with service providers or other parties only where necessary for the stated purpose and permitted by applicable law."],
       ["4. Data security", "We use reasonable technical and organisational safeguards to protect information. However, no online transmission or storage system can be guaranteed to be completely secure."],
@@ -166,7 +226,7 @@ const legalDocuments = {
       ["7. Contact and complaints", "For privacy questions or complaints, contact: [PRIVACY EMAIL]. Grievance contact: [NAME / ROLE / EMAIL / POSTAL ADDRESS]."]
     ],
     hi: [
-      ["1. हम कौन-सी जानकारी लेते हैं", "हम आपका नाम, ईमेल, मोबाइल नंबर, जन्म तिथि, शहर, राज्य और अनुरोध के लिए आवश्यक जानकारी एकत्र कर सकते हैं। आधार संबंधी जानकारी केवल वैध आधार और अधिकृत प्रक्रिया होने पर ही ली और उपयोग की जानी चाहिए।"],
+      ["1. हम कौन-सी जानकारी लेते हैं", "हम आपका नाम, ईमेल पता, मोबाइल नंबर और जहां वैध आधार तथा अधिकृत प्रक्रिया उपलब्ध हो, पात्र अनुरोध के लिए आपका 12 अंकों का Aadhaar नंबर लेते हैं। हम Aadhaar फोटो या दस्तावेज़ अपलोड करने के लिए नहीं कहते।"],
       ["2. जानकारी का उपयोग", "जानकारी का उपयोग आपके अनुरोध को प्राप्त करने, उसकी समीक्षा और प्रक्रिया करने, आपसे संपर्क करने, दुरुपयोग रोकने और कानूनी आवश्यकताओं का पालन करने के लिए किया जाता है।"],
       ["3. जानकारी साझा करना", "हम व्यक्तिगत जानकारी बेचते नहीं हैं। जानकारी केवल आवश्यक होने और कानून द्वारा अनुमति दिए जाने पर सेवा प्रदाताओं या अन्य पक्षों के साथ साझा की जा सकती है।"],
       ["4. जानकारी की सुरक्षा", "हम जानकारी की सुरक्षा के लिए उचित तकनीकी और संगठनात्मक उपाय अपनाते हैं। हालांकि, इंटरनेट पर किसी भी प्रणाली की पूर्ण सुरक्षा की गारंटी नहीं दी जा सकती।"],
@@ -207,9 +267,10 @@ const legalDocuments = {
   }
 };
 
-function Field({ name, label, value, onChange, type = "text", icon: Icon, required = false }) {
+function Field({ name, label, placeholder, value, onChange, type = "text", icon: Icon, required = false, hint, autoComplete, showToggle = false, visible = false, onToggle, toggleLabel, hideLabel }) {
+  const inputType = showToggle ? (visible ? "text" : "password") : type;
   return (
-    <label className="block">
+    <label className="pk-field block">
       <span className="mb-2 block text-[13px] font-semibold text-[#24364B]">
         {label}{required && <span className="text-[#D05B57]"> *</span>}
       </span>
@@ -217,24 +278,41 @@ function Field({ name, label, value, onChange, type = "text", icon: Icon, requir
         {Icon && <Icon size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8B9AAF]" />}
         <input
           name={name}
-          type={type}
+          type={inputType}
+          placeholder={placeholder}
           value={value}
           onChange={onChange}
           required={required}
+          autoComplete={autoComplete || "off"}
+          minLength={name === "fullName" ? 2 : undefined}
           maxLength={name === "phone" ? 10 : name === "aadhaarNumber" ? 12 : undefined}
+          pattern={name === "phone" ? "[6-9][0-9]{9}" : name === "aadhaarNumber" ? "[0-9]{12}" : undefined}
           inputMode={(name === "phone" || name === "aadhaarNumber") ? "numeric" : undefined}
-          placeholder={label}
-          className={`h-[52px] w-full rounded-xl border border-[#DFE6EE] bg-white text-[14px] text-[#26384D] ${Icon ? "pl-11 pr-4" : "px-4"}`}
+          aria-label={label}
+          className={`h-[52px] w-full rounded-xl border border-[#DFE6EE] bg-white text-[14px] text-[#26384D] ${Icon ? "pl-11" : "pl-4"} ${showToggle ? "pr-14" : "pr-4"}`}
         />
+        {showToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={visible ? hideLabel : toggleLabel}
+            aria-pressed={visible}
+            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[#718196] transition hover:bg-[#F1F5F8] hover:text-[#17365D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#159B83]"
+          >
+            {visible ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        )}
       </span>
+      {hint && <span className="mt-1.5 block text-[11px] leading-5 text-[#718196]">{hint}</span>}
     </label>
   );
 }
 
-export default function RequestPreview({ language = "en", onBack }) {
+export default function RequestPreview({ language = "en", onBack, initialValues = null }) {
   const t = copy[language] || copy.en;
 
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState(() => ({ ...initial, ...(initialValues || {}) }));
+  const [showAadhaar, setShowAadhaar] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [legalDocument, setLegalDocument] = useState(null);
@@ -251,6 +329,7 @@ export default function RequestPreview({ language = "en", onBack }) {
   const [copied, setCopied] = useState("");
   const [showUtrForm, setShowUtrForm] = useState(false);
   const [autoChecking, setAutoChecking] = useState(false);
+  const [maskedPanPreview, setMaskedPanPreview] = useState(() => createMaskedPanPreview());
 
   const update = (e) => {
     const { name, value } = e.target;
@@ -279,28 +358,25 @@ export default function RequestPreview({ language = "en", onBack }) {
       return;
     }
 
+    setMaskedPanPreview(createMaskedPanPreview());
     setStep("review");
   };
 
   const startPayment = async () => {
-    setError("");
-    setBusy(true);
+    setError(""); setBusy(true);
     try {
-      const response = await fetch(`${API}/api/payments/create-manual`, {
+      const response = await fetch(`${API}/api/payments/cashfree/create-order`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, consent: true, consentDetails: { privacyAccepted, termsAccepted, privacyVersion: "1.0", termsVersion: "1.0" } })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || t.failed);
       setPaymentDetails(data);
-      setSecondsLeft(5 * 60);
-      setQrImageFailed(false);
-      setStatusCheck(null);
-      setShowUtrForm(false);
-      setPaymentConfirmed(false);
-      setUtr("");
-      setAutoChecking(false);
-      setStep("payment");
+      sessionStorage.setItem("pankhojo_cashfree_payment", JSON.stringify({ paymentReference: data.paymentReference, email: form.email, createdAt: Date.now() }));
+      const Cashfree = await loadCashfreeSdk();
+      const cashfree = Cashfree({ mode: data.environment === "production" ? "production" : "sandbox" });
+      const checkoutResult = await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_self" });
+      if (checkoutResult?.error) throw new Error(checkoutResult.error.message || "Unable to open Cashfree checkout.");
     } catch (err) { setError(err.message || t.failed); }
     finally { setBusy(false); }
   };
@@ -637,15 +713,43 @@ export default function RequestPreview({ language = "en", onBack }) {
               <div className="p-5 sm:p-8">
                 {step === "form" && <>
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Field name="fullName" label={t.fullName} value={form.fullName} onChange={update} icon={UserRound} required />
-                    <Field name="email" label={t.email} value={form.email} onChange={update} type="email" icon={Mail} required />
-                    <Field name="phone" label={t.phone} value={form.phone} onChange={update} type="tel" icon={Phone} required />
-                    <Field name="aadhaarNumber" label={t.aadhaar} value={form.aadhaarNumber} onChange={update} type="password" icon={Fingerprint} required />
-                    <Field name="dateOfBirth" label={t.dob} value={form.dateOfBirth} onChange={update} type="date" icon={CalendarDays} />
-                    <Field name="fatherName" label={t.father} value={form.fatherName} onChange={update} icon={UserRound} />
-                    <Field name="city" label={t.city} value={form.city} onChange={update} icon={MapPin} />
-                    <Field name="state" label={t.state} value={form.state} onChange={update} icon={MapPin} />
+                    <Field name="fullName" label={t.fullName} placeholder={t.fullNamePlaceholder} value={form.fullName} onChange={update} icon={UserRound} required autoComplete="name" />
+                    <Field name="email" label={t.email} placeholder={t.emailPlaceholder} value={form.email} onChange={update} type="email" icon={Mail} required autoComplete="email" />
+                    <Field name="phone" label={t.phone} placeholder={t.phonePlaceholder} value={form.phone} onChange={update} type="tel" icon={Phone} required autoComplete="tel-national" />
+                    <Field
+                      name="aadhaarNumber"
+                      label={t.aadhaar}
+                      placeholder={t.aadhaarPlaceholder}
+                      value={form.aadhaarNumber}
+                      onChange={update}
+                      icon={Fingerprint}
+                      required
+                      showToggle
+                      visible={showAadhaar}
+                      onToggle={() => setShowAadhaar(value => !value)}
+                      toggleLabel={t.showAadhaar}
+                      hideLabel={t.hideAadhaar}
+                      hint={t.aadhaarHint}
+                    />
                   </div>
+
+                  <details
+                    className="pk-additional-details mt-5 overflow-hidden rounded-2xl border border-[#E3EAF0] bg-[#FBFCFE]"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
+                      <span>
+                        <span className="block text-sm font-extrabold text-[#20364D]">{t.additionalTitle}</span>
+                        <span className="mt-1 block text-[11px] leading-5 text-[#8190A1]">{t.additionalHint}</span>
+                      </span>
+                      <ChevronDown size={18} className="shrink-0 text-[#688096]" />
+                    </summary>
+                    <div className="grid gap-4 border-t border-[#E8EDF2] p-4 sm:grid-cols-2">
+                      <Field name="dateOfBirth" label={t.dateOfBirth} placeholder={t.dateOfBirthPlaceholder} value={form.dateOfBirth} onChange={update} type="date" icon={CalendarDays} />
+                      <Field name="fatherName" label={t.fatherName} placeholder={t.fatherNamePlaceholder} value={form.fatherName} onChange={update} icon={UserRound} />
+                      <Field name="city" label={t.city} placeholder={t.cityPlaceholder} value={form.city} onChange={update} icon={MapPin} />
+                      <Field name="state" label={t.state} placeholder={t.statePlaceholder} value={form.state} onChange={update} icon={MapPin} />
+                    </div>
+                  </details>
 
                   <div className="mt-7 rounded-2xl border border-[#DCECE7] bg-[#F3FAF7] p-4">
                     <div className="flex gap-3">
@@ -696,13 +800,35 @@ export default function RequestPreview({ language = "en", onBack }) {
                   <div>
                     <h3 className="text-xl font-bold text-[#17365D]">{t.reviewTitle}</h3>
                     <p className="mt-2 text-sm leading-6 text-[#69798D]">{t.reviewIntro}</p>
+
+                    <section className="pk-pan-preview mt-6" aria-labelledby="pk-pan-preview-title">
+                      <div className="pk-pan-preview-top">
+                        <div>
+                          <p className="pk-pan-preview-eyebrow">PAN RESULT</p>
+                          <h4 id="pk-pan-preview-title" className="pk-pan-preview-title">{t.panPreviewTitle}</h4>
+                        </div>
+                        <span className="pk-pan-preview-status"><LockKeyhole size={13} /> {t.panPreviewStatus}</span>
+                      </div>
+                      <div className="pk-pan-preview-number" aria-label="Masked illustrative PAN format">{maskedPanPreview}</div>
+                      <p className="pk-pan-preview-disclaimer">{t.panPreviewIllustrative}</p>
+                      <div className="pk-pan-preview-divider" />
+                      <div className="pk-pan-preview-message">
+                        <span className="pk-pan-preview-lock"><LockKeyhole size={17} /></span>
+                        <div>
+                          <p className="pk-pan-preview-unlock">{t.panPreviewUnlock}</p>
+                          <p className="pk-pan-preview-delivery">{t.panPreviewDelivery}</p>
+                        </div>
+                      </div>
+                    </section>
+
                     <div className="mt-6 grid gap-4 rounded-xl border border-[#E4EAF0] bg-[#FAFCFE] p-4 sm:grid-cols-2">
                       {[
                         [t.fullName, form.fullName], [t.email, form.email], [t.phone, form.phone],
                         [t.aadhaar, `${t.maskedAadhaar} ${form.aadhaarNumber.slice(-4)}`],
-                        [t.dob, form.dateOfBirth || t.optionalNotProvided],
-                        [t.father, form.fatherName || t.optionalNotProvided],
-                        [t.city, form.city || t.optionalNotProvided], [t.state, form.state || t.optionalNotProvided]
+                        ...(form.dateOfBirth ? [[t.dateOfBirth, form.dateOfBirth]] : []),
+                        ...(form.fatherName ? [[t.fatherName, form.fatherName]] : []),
+                        ...(form.city ? [[t.city, form.city]] : []),
+                        ...(form.state ? [[t.state, form.state]] : [])
                       ].map(([label, value]) => (
                         <div key={label} className="min-w-0">
                           <p className="text-xs text-[#8491A1]">{label}</p>

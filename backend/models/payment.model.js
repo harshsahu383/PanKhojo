@@ -131,7 +131,7 @@ export const expirePendingPayments = async () => {
   const [result] = await pool.execute(
     `UPDATE payment_orders
         SET status = 'expired', customer_message = 'Checkout expired after five minutes.'
-      WHERE status = 'created'
+      WHERE status = 'created' AND (gateway IS NULL OR gateway = 'manual')
         AND created_at <= DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 5 MINUTE)`
   );
   return result.affectedRows || 0;
@@ -281,5 +281,100 @@ export const getPublicPaymentTracking = async ({ paymentReference, email }) => {
       LIMIT 1`,
     [paymentReference, email, email]
   );
+  return rows[0] || null;
+};
+
+
+// Cashfree hosted checkout persistence. Payment references are merchant order IDs.
+export const insertCashfreeOrder = async ({ paymentReference, amount, customerPayload, gatewayOrderId, paymentSessionId }) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute(`INSERT INTO payment_orders
+      (payment_reference, amount, currency, customer_payload, status, gateway, gateway_order_id, gateway_payment_session_id, created_at)
+      VALUES (?, ?, 'INR', ?, 'created', 'cashfree', ?, ?, UTC_TIMESTAMP(3))`,
+      [paymentReference, amount, JSON.stringify(customerPayload), gatewayOrderId, paymentSessionId]);
+    await connection.execute(`INSERT INTO customer_leads (payment_reference, full_name, email, phone) VALUES (?, ?, ?, ?)`,
+      [paymentReference, customerPayload.fullName, customerPayload.email, customerPayload.phone]);
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+};
+
+export const getCashfreeOrder = async (paymentReference) => {
+  const [rows] = await pool.execute(`SELECT id, payment_reference, amount, currency, customer_payload, status, gateway,
+    gateway_order_id, gateway_payment_session_id, gateway_payment_id, gateway_payment_status, request_id, created_at
+    FROM payment_orders WHERE payment_reference = ? AND gateway = 'cashfree' LIMIT 1`, [paymentReference]);
+  return rows[0] || null;
+};
+
+export const markCashfreePaymentPending = async ({ paymentReference, paymentId, paymentStatus = 'PENDING', eventId }) => {
+  await pool.execute(`UPDATE payment_orders
+    SET gateway_payment_id = COALESCE(?, gateway_payment_id),
+        gateway_payment_status = ?,
+        gateway_event_id = COALESCE(?, gateway_event_id),
+        status = 'created'
+    WHERE payment_reference = ? AND gateway = 'cashfree' AND status <> 'paid'`,
+    [paymentId || null, paymentStatus || 'PENDING', eventId || null, paymentReference]);
+};
+
+export const markCashfreePaymentFailed = async ({ paymentReference, paymentId, paymentStatus, eventId }) => {
+  await pool.execute(`UPDATE payment_orders
+    SET gateway_payment_id = COALESCE(?, gateway_payment_id),
+        gateway_payment_status = ?,
+        gateway_event_id = COALESCE(?, gateway_event_id),
+        status = 'failed'
+    WHERE payment_reference = ? AND gateway = 'cashfree' AND status <> 'paid'`,
+    [paymentId || null, paymentStatus || 'FAILED', eventId || null, paymentReference]);
+};
+
+export const finalizeCashfreePayment = async ({ paymentReference, paymentId, paymentStatus, paidAmount, paidCurrency = 'INR', eventId }) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.execute(`SELECT * FROM payment_orders WHERE payment_reference = ? AND gateway = 'cashfree' FOR UPDATE`, [paymentReference]);
+    const order = rows[0];
+    if (!order) { await connection.rollback(); return { updated: false, reason: 'order_not_found' }; }
+    if (order.status === 'paid' && order.request_id) {
+      const [existing] = await connection.execute(`SELECT id, request_number, full_name, email FROM service_requests WHERE id = ? LIMIT 1`, [order.request_id]);
+      await connection.commit();
+      return { updated: false, alreadyPaid: true, request: existing[0] || null };
+    }
+    if (paymentStatus !== 'SUCCESS') { await connection.rollback(); return { updated: false, reason: 'payment_not_success' }; }
+    if (paidAmount == null || Math.round(Number(paidAmount) * 100) !== Number(order.amount) || paidCurrency !== 'INR') {
+      await connection.rollback();
+      throw new Error('Cashfree payment amount or currency does not match the merchant order.');
+    }
+    const customer = typeof order.customer_payload === 'string' ? JSON.parse(order.customer_payload) : order.customer_payload;
+    if (!customer?.aadhaarEncrypted || !customer?.aadhaarLast4) throw new Error('Encrypted request details are missing for this Cashfree order.');
+    const requestNumber = `PK-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const [insert] = await connection.execute(`INSERT INTO service_requests
+      (request_number, full_name, email, phone, date_of_birth, father_name, city, state,
+       aadhaar_encrypted, aadhaar_last4, privacy_consent, terms_consent, privacy_policy_version, terms_version, consented_at, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, UTC_TIMESTAMP(3), 'pending')`,
+      [requestNumber, customer.fullName, customer.email, customer.phone, customer.dateOfBirth || null,
+       customer.fatherName || null, customer.city || null, customer.state || null, customer.aadhaarEncrypted,
+       customer.aadhaarLast4, customer.privacyPolicyVersion, customer.termsVersion]);
+    await connection.execute(`INSERT INTO request_logs (request_id, admin_id, action, description)
+      VALUES (?, NULL, 'request_created', 'Request created after Cashfree confirmed successful payment')`, [insert.insertId]);
+    await connection.execute(`INSERT INTO request_status_history (request_id, status) VALUES (?, 'pending')`, [insert.insertId]);
+    await connection.execute(`UPDATE payment_orders SET status = 'paid', gateway_payment_id = ?, gateway_payment_status = 'SUCCESS',
+      gateway_event_id = ?, request_id = ?, verified_at = UTC_TIMESTAMP(3) WHERE id = ?`,
+      [paymentId || null, eventId || null, insert.insertId, order.id]);
+    await connection.commit();
+    return { updated: true, request: { id: insert.insertId, request_number: requestNumber, full_name: customer.fullName, email: customer.email }, amount: order.amount, currency: order.currency, paymentReference, paymentId: paymentId || null };
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+};
+
+export const getCashfreePublicStatus = async (paymentReference, email) => {
+  const [rows] = await pool.execute(`SELECT po.payment_reference, po.amount, po.currency, po.status, po.gateway_payment_status,
+    po.gateway_payment_id, po.created_at, po.verified_at, sr.request_number,
+    cl.full_name AS customer_name, cl.email AS customer_email, cl.phone AS customer_phone
+    FROM payment_orders po
+    LEFT JOIN service_requests sr ON sr.id = po.request_id
+    JOIN customer_leads cl ON cl.payment_reference = po.payment_reference
+    WHERE po.payment_reference = ? AND LOWER(cl.email) = LOWER(?) AND po.gateway = 'cashfree' LIMIT 1`,
+    [paymentReference, email]);
   return rows[0] || null;
 };

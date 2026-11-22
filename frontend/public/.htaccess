@@ -1,0 +1,19 @@
+Options -MultiViews
+RewriteEngine On
+
+Redirect 301 /how-to-find-existing-pan-number.html /pan-number-guide
+Redirect 301 /terms.html /terms-and-conditions
+Redirect 301 /refund-policy.html /refund-policy
+
+# Keep clean canonical URLs without trailing slashes.
+RewriteRule ^(how-pankhojo-works|pan-number-guide|about-us|contact-us|privacy-policy|terms-and-conditions|refund-policy)/$ /$1 [R=301,L]
+
+# Serve route-specific prerendered HTML at clean URLs without adding a trailing slash.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+)$ $1.html [L]
+
+# Keep the React application fallback for non-prerendered routes such as admin.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]

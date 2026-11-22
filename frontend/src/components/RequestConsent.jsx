@@ -7,7 +7,7 @@ const documents = {
         title: "Privacy Policy",
         sections: [
             ["1. Information we collect",
-                "Depending on the service requested, we may collect your name, contact details, request information and other details necessary to handle your request. Sensitive identity information, including Aadhaar information, must only be collected where PANKhojo has verified a lawful basis and an authorised process for doing so."],
+                "Depending on the service requested, we may collect your name, contact details, request information and other details necessary to handle your request. Where PANKhojo has verified a lawful basis and an authorised process, we request the Aadhaar number only—not an Aadhaar photo or document."],
             ["2. How we use your information",
                 "We use information to receive, review, communicate about and process your request; verify the information where legally permitted; prevent misuse; maintain service records; and meet applicable legal obligations."],
             ["3. Sharing of information",

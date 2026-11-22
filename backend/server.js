@@ -12,6 +12,7 @@ import requestRoutes from "./routes/request.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js";
 import { expirePendingPayments } from "./models/payment.model.js";
+import { cashfreeWebhook } from "./controllers/cashfree.controller.js";
 
 dotenv.config();
 const app = express();
@@ -41,6 +42,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://sdk.cashfree.com", "https://*.cashfree.com"],
+      frameSrc: ["'self'", "https://*.cashfree.com"],
+      connectSrc: ["'self'", "https://sandbox.cashfree.com", "https://api.cashfree.com", "https://sdk.cashfree.com", "https://*.cashfree.com"],
       baseUri: ["'self'"],
       frameAncestors: ["'none'"],
       objectSrc: ["'none'"],
@@ -76,6 +80,8 @@ app.use("/public", express.static(path.join(BACKEND_DIR, "public"), {
   maxAge: "1h",
   setHeaders(response) { response.setHeader("Cross-Origin-Resource-Policy", "cross-origin"); },
 }));
+// Cashfree signature verification requires the exact raw webhook bytes.
+app.post("/api/payments/cashfree/webhook", express.raw({ type: "application/json", limit: "1mb" }), cashfreeWebhook);
 app.use(express.json({ limit: "12kb", strict: true }));
 app.use(express.urlencoded({ extended: false, limit: "12kb", parameterLimit: 30 }));
 
